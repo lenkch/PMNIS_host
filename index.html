@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhotoEdit — Photo Editor</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- ===== Welcome / Role Screen ===== -->
+<div class="welcome-screen" id="welcome-screen">
+    <div class="welcome-card">
+        <div class="welcome-logo">📷</div>
+        <h1 class="welcome-title">PhotoEdit</h1>
+        <p class="welcome-sub">How would you describe yourself?</p>
+
+        <div class="role-options">
+            <button class="role-btn" id="role-beginner">
+                <span class="role-icon">🌱</span>
+                <span class="role-name">Beginner</span>
+                <span class="role-desc">I want to be helped during editing</span>
+            </button>
+            <button class="role-btn" id="role-pro">
+                <span class="role-icon">⚡</span>
+                <span class="role-name">Pro</span>
+                <span class="role-desc">I know my way around editing photos</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="app-container" id="workspace">
+        <!-- ===== Top Toolbar ===== -->
+        <div class="toolbar">
+            <!-- Brand -->
+            <div class="toolbar-brand">
+                <span class="brand-icon">📷</span>
+                <span class="brand-name">PhotoEdit</span>
+            </div>
+
+            <div class="separator"></div>
+
+            <!-- Upload -->
+            <div class="toolbar-group toolbar-group-upload">
+                <button class="btn btn-primary" id="upload-btn" title="Open image">📂 Open</button>
+                <input type="file" id="file-input" accept="image/*" hidden>
+            </div>
+
+            <div class="separator"></div>
+
+            <!-- Undo / Redo -->
+            <div class="toolbar-group">
+                <button class="btn btn-icon" id="btn-undo" title="Undo (Ctrl+Z)">↩️</button>
+                <button class="btn btn-icon" id="btn-redo" title="Redo (Ctrl+Shift+Z)">↪️</button>
+            </div>
+
+            <div class="separator"></div>
+
+
+            <!-- Transforms -->
+            <div class="toolbar-group">
+                <span class="toolbar-group-label">Transform</span>
+                <button class="btn btn-icon" id="btn-rotate-cw" title="Rotate clockwise">↻</button>
+                <button class="btn btn-icon" id="btn-rotate-ccw" title="Rotate counter-clockwise">↺</button>
+                <button class="btn btn-icon" id="btn-flip-h" title="Flip horizontal">⇔</button>
+                <button class="btn btn-icon" id="btn-flip-v" title="Flip vertical">⇕</button>
+            </div>
+
+            <div class="separator"></div>
+
+            <!-- Crop -->
+            <div class="toolbar-group">
+                <button class="btn" id="btn-crop" title="Crop image">✂️ Crop</button>
+            </div>
+
+            <div class="separator"></div>
+
+            <!-- Annotation toggle + tool icons -->
+            <div class="toolbar-group">
+                <button class="btn btn-accent" id="btn-annotate-toggle" title="Toggle annotation mode (A)">🖊️ Detect objects</button>
+                <div class="toolbar-tool-icons" id="toolbar-tool-icons">
+                    <button class="toolbar-tool-btn" data-tool="select" title="Select">👆</button>
+                    <button class="toolbar-tool-btn active" data-tool="freehand" title="Freehand">✏️</button>
+                    <button class="toolbar-tool-btn" data-tool="rectangle" title="Rectangle">▭</button>
+                    <button class="toolbar-tool-btn" data-tool="ellipse" title="Ellipse">⬭</button>
+                    <button class="toolbar-tool-btn" data-tool="arrow" title="Arrow">➤</button>
+                    <button class="toolbar-tool-btn" data-tool="marker" title="Marker">⊙</button>
+                    <button class="toolbar-tool-btn" data-tool="text" title="Text">T</button>
+                </div>
+                <button class="btn btn-erase-toolbar" id="btn-erase-all" title="Erase all annotated regions from the image" style="display:none;">🧹 Remove Objects</button>
+            </div>
+
+            <!-- Spacer pushes Save/Reset to the right -->
+            <div class="toolbar-spacer"></div>
+
+            <!-- Save & Reset (right corner) -->
+            <div class="toolbar-group">
+                <button class="btn" id="btn-reset" title="Reset to original">🔄 Reset</button>
+                <button class="btn btn-primary" id="btn-download" title="Download image">💾 Save</button>
+            </div>
+        </div>
+
+        <!-- ===== Main Content ===== -->
+        <div class="main-content">
+            <!-- Left Side Panel -->
+            <div class="side-panel">
+                <!-- Image Adjustments (collapsible) -->
+                <div class="panel-section collapsible" id="adjustments-panel">
+                    <h3 class="collapsible-header">
+                        🎨 Adjustments
+                        <span class="collapse-icon">▾</span>
+                    </h3>
+
+                    <div class="collapsible-content">
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="label" for="brightness">Brightness</label>
+                                <span class="value" id="brightness-value">0</span>
+                            </div>
+                            <input type="range" id="brightness" min="-100" max="100" value="0">
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="label" for="contrast">Contrast</label>
+                                <span class="value" id="contrast-value">0</span>
+                            </div>
+                            <input type="range" id="contrast" min="-100" max="100" value="0">
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="label" for="saturation">Saturation</label>
+                                <span class="value" id="saturation-value">0</span>
+                            </div>
+                            <input type="range" id="saturation" min="-100" max="100" value="0">
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Filters (always visible) -->
+                <div class="panel-section collapsible">
+                    <h3 class="collapsible-header">
+                        ✨ Filters
+                        <span class="collapse-icon">▾</span>
+                    </h3>
+                    <div class="collapsible-content">
+
+                        <!-- AI Filter button at top -->
+                        <button class="btn btn-ai-filter" id="btn-ai-filter">🤖 Apply AI Filter</button>
+                        <div class="filter-ai-result hidden" id="filter-ai-result">
+                            <div class="filter-ai-applied" id="filter-ai-applied-label"></div>
+                        </div>
+
+                        <div class="filter-section-divider"></div>
+
+                        <!-- Manual filter buttons -->
+                        <div class="filter-grid">
+                            <button class="filter-btn" id="btn-grayscale" title="Grayscale">🖤<span>Grayscale</span></button>
+                            <button class="filter-btn" id="btn-sepia" title="Sepia">🟤<span>Sepia</span></button>
+                            <button class="filter-btn" id="btn-invert" title="Invert">🔄<span>Invert</span></button>
+                            <button class="filter-btn" id="btn-blur" title="Blur">💧<span>Blur</span></button>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Annotation Tools (collapsible) -->
+                <div class="panel-section collapsible" id="annotation-panel">
+                    <h3 class="collapsible-header" id="annotation-panel-toggle">
+                        🖊️ Annotation Tools
+                        <span class="collapse-icon">▾</span>
+                    </h3>
+
+                    <div class="collapsible-content" id="annotation-panel-content">
+                        <div class="tool-grid">
+                            <button class="tool-btn" data-tool="select" title="Select & edit annotation">
+                                <span class="tool-icon">👆</span>
+                                <span class="tool-label">Select</span>
+                            </button>
+                            <button class="tool-btn active" data-tool="freehand" title="Freehand draw">
+                                <span class="tool-icon">✏️</span>
+                                <span class="tool-label">Freehand</span>
+                            </button>
+                            <button class="tool-btn" data-tool="rectangle" title="Rectangle">
+                                <span class="tool-icon">▭</span>
+                                <span class="tool-label">Rectangle</span>
+                            </button>
+                            <button class="tool-btn" data-tool="ellipse" title="Ellipse">
+                                <span class="tool-icon">⬭</span>
+                                <span class="tool-label">Ellipse</span>
+                            </button>
+                            <button class="tool-btn" data-tool="arrow" title="Arrow">
+                                <span class="tool-icon">➤</span>
+                                <span class="tool-label">Arrow</span>
+                            </button>
+                            <button class="tool-btn" data-tool="marker" title="Circle marker">
+                                <span class="tool-icon">⊙</span>
+                                <span class="tool-label">Marker</span>
+                            </button>
+                            <button class="tool-btn" data-tool="text" title="Text label">
+                                <span class="tool-icon">T</span>
+                                <span class="tool-label">Text</span>
+                            </button>
+                        </div>
+
+                        <!-- Color picker -->
+                        <div class="color-picker">
+                            <span class="picker-label">Color</span>
+                            <div class="color-swatches">
+                                <button class="color-swatch active" data-color="red" style="background: #e94560;" title="Red"></button>
+                                <button class="color-swatch" data-color="orange" style="background: #ff9f43;" title="Orange"></button>
+                                <button class="color-swatch" data-color="yellow" style="background: #feca57;" title="Yellow"></button>
+                                <button class="color-swatch" data-color="green" style="background: #10ac84;" title="Green"></button>
+                                <button class="color-swatch" data-color="blue" style="background: #58a6ff;" title="Blue"></button>
+                                <button class="color-swatch" data-color="purple" style="background: #c44dff;" title="Purple"></button>
+                                <button class="color-swatch" data-color="white" style="background: #e6edf3;" title="White"></button>
+                                <button class="color-swatch" data-color="gray" style="background: #8b949e;" title="Gray"></button>
+                            </div>
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="label" for="annotation-width">Line Width</label>
+                                <span class="value" id="annotation-width-value">3</span>
+                            </div>
+                            <input type="range" id="annotation-width" min="1" max="10" value="3">
+                        </div>
+
+                        <!-- AI Detect inside annotation tools -->
+                        <button class="btn btn-ai" id="btn-ai-detect" title="AI detect objects in image">🤖 AI Detect Objects</button>
+                    </div>
+                </div>
+
+                <!-- Annotation List (individual editing) -->
+                <div class="panel-section collapsible" id="annotation-list-panel">
+                    <h3 class="collapsible-header" id="annotation-list-toggle">
+                        📋 Annotations
+                        <span class="collapse-icon">▾</span>
+                    </h3>
+                    <div class="collapsible-content" id="annotation-list-content">
+                        <div class="annotation-list-actions">
+                            <button class="btn btn-small" id="btn-delete-selected" disabled title="Delete selected annotation">🗑️ Delete Selected</button>
+                            <button class="btn btn-small" id="btn-annotation-clear" title="Clear all annotations">✖ Clear All</button>
+                            <button class="btn btn-small" id="btn-export-annotations" title="Export annotations as JSON">📋 Export JSON</button>
+                        </div>
+                        <div class="annotation-list" id="annotation-list">
+                            <p class="list-empty">No annotations</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shortcuts -->
+                <div class="panel-section">
+                    <h3>ℹ️ Shortcuts</h3>
+                    <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.6;">
+                        Ctrl+Z — Undo<br>
+                        Ctrl+Shift+Z — Redo<br>
+                        A — Toggle annotation mode<br>
+                        Delete — Remove selected annotation
+                    </p>
+                </div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="canvas-area">
+                <!-- Drop Zone -->
+                <div class="drop-zone" id="drop-zone">
+                    <div class="drop-zone-content">
+                        <div class="drop-zone-icon">🖼️</div>
+                        <h2>Open an image to start editing</h2>
+                        <p>Drag & drop an image here, or click the button below</p>
+                        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+                            📂 Choose Image
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Canvas -->
+                <div class="canvas-wrapper">
+                    <canvas id="editor-canvas"></canvas>
+                    <canvas id="annotation-overlay"></canvas>
+                    <canvas id="crop-overlay"></canvas>
+                </div>
+
+                <!-- Annotation mode indicator -->
+                <div class="mode-indicator" id="mode-indicator" style="display: none;">
+                    <span class="mode-dot"></span>
+                    <span>Annotation Mode</span>
+                </div>
+
+                <!-- Crop Actions -->
+                <div class="crop-actions" id="crop-actions">
+                    <button class="btn btn-primary" id="btn-crop-apply">✅ Apply Crop</button>
+                    <button class="btn" id="btn-crop-cancel">❌ Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="snackbar" id="snackbar"></div>
+
+    <!-- AI Filter Feedback Modal -->
+    <div class="modal-overlay hidden" id="ai-feedback-overlay">
+        <div class="modal-card" id="ai-feedback-modal">
+            <div class="modal-header">
+                <span class="modal-icon">🤖</span>
+                <h2 class="modal-title">AI Filter Applied</h2>
+            </div>
+
+            <p class="modal-desc">The AI applied the <strong id="ai-feedback-filter-name"></strong> filter to your image.</p>
+
+            <!-- AI reasoning context -->
+            <div class="feedback-context-box" id="ai-feedback-context">
+                <div class="feedback-context-row">
+                    <span class="feedback-context-label">🔍 Why this filter?</span>
+                    <span class="feedback-context-value" id="ai-feedback-reason"></span>
+                </div>
+                <div class="feedback-context-row">
+                    <span class="feedback-context-label">✨ What it does:</span>
+                    <span class="feedback-context-value" id="ai-feedback-effect"></span>
+                </div>
+                <div class="feedback-context-row">
+                    <span class="feedback-context-label">📊 AI confidence:</span>
+                    <span class="feedback-context-value" id="ai-feedback-confidence"></span>
+                </div>
+            </div>
+
+            <p class="feedback-rate-label">Was this a good suggestion?</p>
+
+            <div class="feedback-thumbs">
+                <button class="thumb-btn thumb-up" id="ai-feedback-up" title="Good suggestion">👍 Good pick</button>
+                <button class="thumb-btn thumb-down" id="ai-feedback-down" title="Bad suggestion">👎 Not great</button>
+            </div>
+
+            <div class="feedback-comment hidden" id="feedback-comment-wrap">
+                <label class="label" for="feedback-comment-input">Tell us more (optional)</label>
+                <textarea id="feedback-comment-input" class="feedback-textarea" rows="3" placeholder="e.g. The image was too dark for this filter…"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn" id="ai-feedback-undo">↩️ Undo filter</button>
+                <button class="btn btn-primary" id="ai-feedback-submit">✅ Submit & keep</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
