@@ -8,93 +8,47 @@
 </head>
 <body>
     <!-- ===== Welcome / Role Screen ===== -->
-<div class="welcome-screen" id="welcome-screen">
-    <div class="welcome-card">
-        <div class="welcome-logo">📷</div>
-        <h1 class="welcome-title">PhotoEdit</h1>
-        <p class="welcome-sub">How would you describe yourself?</p>
-
-        <div class="role-options">
-            <button class="role-btn" id="role-beginner">
-                <span class="role-icon">🌱</span>
-                <span class="role-name">Beginner</span>
-                <span class="role-desc">I want to be helped during editing</span>
-            </button>
-            <button class="role-btn" id="role-pro">
-                <span class="role-icon">⚡</span>
-                <span class="role-name">Pro</span>
-                <span class="role-desc">I know my way around editing photos</span>
-            </button>
+    <div class="welcome-screen" id="welcome-screen">
+        <div class="welcome-card">
+            <div class="welcome-logo">📷</div>
+            <h1 class="welcome-title">PhotoEdit</h1>
+            <p class="welcome-sub">How would you describe yourself?</p>
+            <div class="role-options">
+                <button class="role-btn" id="role-beginner">
+                    <span class="role-icon">🌱</span>
+                    <span class="role-name">Beginner</span>
+                    <span class="role-desc">I want to be helped during editing</span>
+                </button>
+                <button class="role-btn" id="role-pro">
+                    <span class="role-icon">⚡</span>
+                    <span class="role-name">Pro</span>
+                    <span class="role-desc">I know my way around editing photos</span>
+                </button>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="app-container" id="workspace">
+    <div class="app-container" id="workspace">
+
         <!-- ===== Top Toolbar ===== -->
         <div class="toolbar">
-            <!-- Brand -->
             <div class="toolbar-brand">
                 <span class="brand-icon">📷</span>
                 <span class="brand-name">PhotoEdit</span>
             </div>
-
             <div class="separator"></div>
-
-            <!-- Upload -->
             <div class="toolbar-group toolbar-group-upload">
                 <button class="btn btn-primary" id="upload-btn" title="Open image">📂 Open</button>
                 <input type="file" id="file-input" accept="image/*" hidden>
             </div>
-
             <div class="separator"></div>
-
-            <!-- Undo / Redo -->
             <div class="toolbar-group">
                 <button class="btn btn-icon" id="btn-undo" title="Undo (Ctrl+Z)">↩️</button>
                 <button class="btn btn-icon" id="btn-redo" title="Redo (Ctrl+Shift+Z)">↪️</button>
             </div>
-
-            <div class="separator"></div>
-
-
-            <!-- Transforms -->
-            <div class="toolbar-group">
-                <span class="toolbar-group-label">Transform</span>
-                <button class="btn btn-icon" id="btn-rotate-cw" title="Rotate clockwise">↻</button>
-                <button class="btn btn-icon" id="btn-rotate-ccw" title="Rotate counter-clockwise">↺</button>
-                <button class="btn btn-icon" id="btn-flip-h" title="Flip horizontal">⇔</button>
-                <button class="btn btn-icon" id="btn-flip-v" title="Flip vertical">⇕</button>
-            </div>
-
-            <div class="separator"></div>
-
-            <!-- Crop -->
-            <div class="toolbar-group">
-                <button class="btn" id="btn-crop" title="Crop image">✂️ Crop</button>
-            </div>
-
-            <div class="separator"></div>
-
-            <!-- Annotation toggle + tool icons -->
-            <div class="toolbar-group">
-                <button class="btn btn-accent" id="btn-annotate-toggle" title="Toggle annotation mode (A)">🖊️ Detect objects</button>
-                <div class="toolbar-tool-icons" id="toolbar-tool-icons">
-                    <button class="toolbar-tool-btn" data-tool="select" title="Select">👆</button>
-                    <button class="toolbar-tool-btn active" data-tool="freehand" title="Freehand">✏️</button>
-                    <button class="toolbar-tool-btn" data-tool="rectangle" title="Rectangle">▭</button>
-                    <button class="toolbar-tool-btn" data-tool="ellipse" title="Ellipse">⬭</button>
-                    <button class="toolbar-tool-btn" data-tool="arrow" title="Arrow">➤</button>
-                    <button class="toolbar-tool-btn" data-tool="marker" title="Marker">⊙</button>
-                    <button class="toolbar-tool-btn" data-tool="text" title="Text">T</button>
-                </div>
-                <button class="btn btn-erase-toolbar" id="btn-erase-all" title="Erase all annotated regions from the image" style="display:none;">🧹 Remove Objects</button>
-            </div>
-
-            <!-- Spacer pushes Save/Reset to the right -->
             <div class="toolbar-spacer"></div>
-
-            <!-- Save & Reset (right corner) -->
             <div class="toolbar-group">
+                <button class="btn btn-compare" id="btn-compare" title="Hold to compare with original">👁 Compare</button>
                 <button class="btn" id="btn-reset" title="Reset to original">🔄 Reset</button>
                 <button class="btn btn-primary" id="btn-download" title="Download image">💾 Save</button>
             </div>
@@ -102,16 +56,79 @@
 
         <!-- ===== Main Content ===== -->
         <div class="main-content">
-            <!-- Left Side Panel -->
-            <div class="side-panel">
-                <!-- Image Adjustments (collapsible) -->
-                <div class="panel-section collapsible" id="adjustments-panel">
-                    <h3 class="collapsible-header">
-                        🎨 Adjustments
-                        <span class="collapse-icon">▾</span>
-                    </h3>
 
-                    <div class="collapsible-content">
+            <!-- === Left Icon Rail === -->
+            <div class="tool-rail" id="tool-rail">
+                <button class="rail-btn" data-tool="crop" title="Crop">
+                    <span class="rail-icon">✂️</span>
+                    <span class="rail-label">Crop</span>
+                </button>
+                <button class="rail-btn" data-tool="adjust" title="Adjust">
+                    <span class="rail-icon">🎨</span>
+                    <span class="rail-label">Adjust</span>
+                </button>
+                <button class="rail-btn" data-tool="filters" title="Filters">
+                    <span class="rail-icon">✨</span>
+                    <span class="rail-label">Filters</span>
+                </button>
+                <button class="rail-btn" data-tool="retouch" title="Retouch">
+                    <span class="rail-icon">🪄</span>
+                    <span class="rail-label">Retouch</span>
+                </button>
+                <button class="rail-btn" data-tool="objects" title="Objects">
+                    <span class="rail-icon">🎯</span>
+                    <span class="rail-label">Objects</span>
+                </button>
+                <button class="rail-btn" data-tool="ai" title="AI Tools">
+                    <span class="rail-icon">🤖</span>
+                    <span class="rail-label">AI Tools</span>
+                </button>
+                <button class="rail-btn" data-tool="text" title="Text">
+                    <span class="rail-icon">T</span>
+                    <span class="rail-label">Text</span>
+                </button>
+                <div class="rail-spacer"></div>
+                <button class="rail-btn rail-btn-feedback" id="rail-feedback-btn" title="Give feedback">
+                    <span class="rail-icon">💬</span>
+                    <span class="rail-label">Feedback</span>
+                </button>
+            </div>
+
+            <!-- === Left Sliding Panel === -->
+            <div class="tool-panel" id="tool-panel">
+                <div class="tool-panel-header">
+                    <span class="tool-panel-title" id="tool-panel-title">Tools</span>
+                    <button class="tool-panel-close" id="tool-panel-close" title="Close">✕</button>
+                </div>
+
+                <!-- CROP panel -->
+                <div class="tool-pane" id="pane-crop">
+                    <div class="pane-section">
+                        <div class="pane-tooltip"><div class="pane-tooltip-title">✂️ Crop</div>Click "Start Crop", then drag a rectangle on your image to select the area you want to keep. Hit Apply to confirm.</div>
+                        <p class="pane-desc">Select an area to keep, then apply.</p>
+                        <button class="btn btn-primary w-full" id="btn-crop">✂️ Start Crop</button>
+                        <div class="crop-actions-inline" id="crop-actions-inline" style="display:none;">
+                            <button class="btn btn-primary w-full" id="btn-crop-apply">✅ Apply Crop</button>
+                            <button class="btn w-full" id="btn-crop-cancel">❌ Cancel</button>
+                        </div>
+                    </div>
+                    <div class="pane-section">
+                        <div class="pane-tooltip"><div class="pane-tooltip-title">🔄 Transform</div>Rotate your image 90° clockwise or counter-clockwise, or mirror it horizontally and vertically.</div>
+                        <p class="pane-label">Transform</p>
+                        <div class="btn-grid-2">
+                            <button class="btn" id="btn-rotate-cw">↻ Rotate CW</button>
+                            <button class="btn" id="btn-rotate-ccw">↺ Rotate CCW</button>
+                            <button class="btn" id="btn-flip-h">⇔ Flip H</button>
+                            <button class="btn" id="btn-flip-v">⇕ Flip V</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADJUST panel -->
+                <div class="tool-pane" id="pane-adjust" style="display:none;">
+                    <div class="pane-section">
+                        <div class="pane-tooltip"><div class="pane-tooltip-title">🎨 Adjustments</div>Fine-tune your image with light and colour sliders. Changes are previewed live — drag right to increase, left to decrease each value.</div>
+                        <p class="pane-label">Light & Colour</p>
                         <div class="slider-group">
                             <div class="slider-header">
                                 <label class="label" for="brightness">Brightness</label>
@@ -119,7 +136,6 @@
                             </div>
                             <input type="range" id="brightness" min="-100" max="100" value="0">
                         </div>
-
                         <div class="slider-group">
                             <div class="slider-header">
                                 <label class="label" for="contrast">Contrast</label>
@@ -127,7 +143,6 @@
                             </div>
                             <input type="range" id="contrast" min="-100" max="100" value="0">
                         </div>
-
                         <div class="slider-group">
                             <div class="slider-header">
                                 <label class="label" for="saturation">Saturation</label>
@@ -135,213 +150,341 @@
                             </div>
                             <input type="range" id="saturation" min="-100" max="100" value="0">
                         </div>
-                    </div>
-                </div>
-
-
-                <!-- Filters (always visible) -->
-                <div class="panel-section collapsible">
-                    <h3 class="collapsible-header">
-                        ✨ Filters
-                        <span class="collapse-icon">▾</span>
-                    </h3>
-                    <div class="collapsible-content">
-
-                        <!-- AI Filter button at top -->
-                        <button class="btn btn-ai-filter" id="btn-ai-filter">🤖 Apply AI Filter</button>
-                        <div class="filter-ai-result hidden" id="filter-ai-result">
-                            <div class="filter-ai-applied" id="filter-ai-applied-label"></div>
-                        </div>
-
-                        <div class="filter-section-divider"></div>
-
-                        <!-- Manual filter buttons -->
-                        <div class="filter-grid">
-                            <button class="filter-btn" id="btn-grayscale" title="Grayscale">🖤<span>Grayscale</span></button>
-                            <button class="filter-btn" id="btn-sepia" title="Sepia">🟤<span>Sepia</span></button>
-                            <button class="filter-btn" id="btn-invert" title="Invert">🔄<span>Invert</span></button>
-                            <button class="filter-btn" id="btn-blur" title="Blur">💧<span>Blur</span></button>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Annotation Tools (collapsible) -->
-                <div class="panel-section collapsible" id="annotation-panel">
-                    <h3 class="collapsible-header" id="annotation-panel-toggle">
-                        🖊️ Annotation Tools
-                        <span class="collapse-icon">▾</span>
-                    </h3>
-
-                    <div class="collapsible-content" id="annotation-panel-content">
-                        <div class="tool-grid">
-                            <button class="tool-btn" data-tool="select" title="Select & edit annotation">
-                                <span class="tool-icon">👆</span>
-                                <span class="tool-label">Select</span>
-                            </button>
-                            <button class="tool-btn active" data-tool="freehand" title="Freehand draw">
-                                <span class="tool-icon">✏️</span>
-                                <span class="tool-label">Freehand</span>
-                            </button>
-                            <button class="tool-btn" data-tool="rectangle" title="Rectangle">
-                                <span class="tool-icon">▭</span>
-                                <span class="tool-label">Rectangle</span>
-                            </button>
-                            <button class="tool-btn" data-tool="ellipse" title="Ellipse">
-                                <span class="tool-icon">⬭</span>
-                                <span class="tool-label">Ellipse</span>
-                            </button>
-                            <button class="tool-btn" data-tool="arrow" title="Arrow">
-                                <span class="tool-icon">➤</span>
-                                <span class="tool-label">Arrow</span>
-                            </button>
-                            <button class="tool-btn" data-tool="marker" title="Circle marker">
-                                <span class="tool-icon">⊙</span>
-                                <span class="tool-label">Marker</span>
-                            </button>
-                            <button class="tool-btn" data-tool="text" title="Text label">
-                                <span class="tool-icon">T</span>
-                                <span class="tool-label">Text</span>
-                            </button>
-                        </div>
-
-                        <!-- Color picker -->
-                        <div class="color-picker">
-                            <span class="picker-label">Color</span>
-                            <div class="color-swatches">
-                                <button class="color-swatch active" data-color="red" style="background: #e94560;" title="Red"></button>
-                                <button class="color-swatch" data-color="orange" style="background: #ff9f43;" title="Orange"></button>
-                                <button class="color-swatch" data-color="yellow" style="background: #feca57;" title="Yellow"></button>
-                                <button class="color-swatch" data-color="green" style="background: #10ac84;" title="Green"></button>
-                                <button class="color-swatch" data-color="blue" style="background: #58a6ff;" title="Blue"></button>
-                                <button class="color-swatch" data-color="purple" style="background: #c44dff;" title="Purple"></button>
-                                <button class="color-swatch" data-color="white" style="background: #e6edf3;" title="White"></button>
-                                <button class="color-swatch" data-color="gray" style="background: #8b949e;" title="Gray"></button>
-                            </div>
-                        </div>
-
                         <div class="slider-group">
                             <div class="slider-header">
-                                <label class="label" for="annotation-width">Line Width</label>
-                                <span class="value" id="annotation-width-value">3</span>
+                                <label class="label" for="exposure">Exposure</label>
+                                <span class="value" id="exposure-value">0</span>
                             </div>
-                            <input type="range" id="annotation-width" min="1" max="10" value="3">
+                            <input type="range" id="exposure" min="-100" max="100" value="0">
                         </div>
-
-                        <!-- AI Detect inside annotation tools -->
-                        <button class="btn btn-ai" id="btn-ai-detect" title="AI detect objects in image">🤖 AI Detect Objects</button>
-                    </div>
-                </div>
-
-                <!-- Annotation List (individual editing) -->
-                <div class="panel-section collapsible" id="annotation-list-panel">
-                    <h3 class="collapsible-header" id="annotation-list-toggle">
-                        📋 Annotations
-                        <span class="collapse-icon">▾</span>
-                    </h3>
-                    <div class="collapsible-content" id="annotation-list-content">
-                        <div class="annotation-list-actions">
-                            <button class="btn btn-small" id="btn-delete-selected" disabled title="Delete selected annotation">🗑️ Delete Selected</button>
-                            <button class="btn btn-small" id="btn-annotation-clear" title="Clear all annotations">✖ Clear All</button>
-                            <button class="btn btn-small" id="btn-export-annotations" title="Export annotations as JSON">📋 Export JSON</button>
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="label" for="highlights">Highlights</label>
+                                <span class="value" id="highlights-value">0</span>
+                            </div>
+                            <input type="range" id="highlights" min="-100" max="100" value="0">
                         </div>
-                        <div class="annotation-list" id="annotation-list">
-                            <p class="list-empty">No annotations</p>
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="label" for="shadows">Shadows</label>
+                                <span class="value" id="shadows-value">0</span>
+                            </div>
+                            <input type="range" id="shadows" min="-100" max="100" value="0">
                         </div>
                     </div>
                 </div>
 
-                <!-- Shortcuts -->
-                <div class="panel-section">
-                    <h3>ℹ️ Shortcuts</h3>
-                    <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.6;">
-                        Ctrl+Z — Undo<br>
-                        Ctrl+Shift+Z — Redo<br>
-                        A — Toggle annotation mode<br>
-                        Delete — Remove selected annotation
-                    </p>
+                <!-- FILTERS panel -->
+                <div class="tool-pane" id="pane-filters" style="display:none;">
+                    <div class="pane-section">
+                        <p class="pane-label">Colour Styles</p>
+                        <div class="filter-grid">
+                            <button class="filter-btn" id="btn-grayscale">🖤<span>Grayscale</span></button>
+                            <button class="filter-btn" id="btn-sepia">🟤<span>Sepia</span></button>
+                            <button class="filter-btn" id="btn-warm">🟠<span>Warm</span></button>
+                            <button class="filter-btn" id="btn-cool">🔵<span>Cool</span></button>
+                            <button class="filter-btn" id="btn-vivid">🌈<span>Vivid</span></button>
+                            <button class="filter-btn" id="btn-fade">🌫️<span>Fade</span></button>
+                        </div>
+                    </div>
+                    <div class="pane-section">
+                        <p class="pane-label">Effects</p>
+                        <div class="filter-grid">
+                            <button class="filter-btn" id="btn-invert">🔄<span>Invert</span></button>
+                            <button class="filter-btn" id="btn-blur">💧<span>Blur</span></button>
+                            <button class="filter-btn" id="btn-sharpen">🔪<span>Sharpen</span></button>
+                            <button class="filter-btn" id="btn-noise">📡<span>Noise</span></button>
+                        </div>
+                        <div class="slider-group" style="margin-top:4px;">
+                            <div class="slider-header">
+                                <label class="label" for="blur-amount">Blur Intensity</label>
+                                <span class="value" id="blur-amount-value">3</span>
+                            </div>
+                            <input type="range" id="blur-amount" min="1" max="20" value="3">
+                        </div>
+                    </div>
+                    <!-- Applied filter indicator -->
+                    <div class="filter-applied-bar" id="filter-intensity-bar" style="display:none;">
+                        <div class="filter-applied-bar-label">Filter applied</div>
+                        <div class="filter-applied-bar-track">
+                            <div class="filter-applied-bar-fill" id="filter-intensity-fill"></div>
+                        </div>
+                    </div>
+                    <div class="pane-section">
+                        <p class="pane-label">Custom Look</p>
+                        <div class="custom-filter-card">
+                            <div class="custom-filter-preview" id="custom-filter-preview">
+                                <span id="custom-filter-preview-label">Open an image to preview</span>
+                            </div>
+                            <div class="custom-filter-sliders">
+                                <div class="slider-group">
+                                    <div class="slider-header">
+                                        <label class="label" for="cf-brightness">Brightness</label>
+                                        <span class="value" id="cf-brightness-value">0</span>
+                                    </div>
+                                    <input type="range" id="cf-brightness" min="-100" max="100" value="0">
+                                </div>
+                                <div class="slider-group">
+                                    <div class="slider-header">
+                                        <label class="label" for="cf-contrast">Contrast</label>
+                                        <span class="value" id="cf-contrast-value">0</span>
+                                    </div>
+                                    <input type="range" id="cf-contrast" min="-100" max="100" value="0">
+                                </div>
+                                <div class="slider-group">
+                                    <div class="slider-header">
+                                        <label class="label" for="cf-saturation">Saturation</label>
+                                        <span class="value" id="cf-saturation-value">0</span>
+                                    </div>
+                                    <input type="range" id="cf-saturation" min="-100" max="100" value="0">
+                                </div>
+                                <div class="slider-group">
+                                    <div class="slider-header">
+                                        <label class="label" for="cf-hue">Hue Shift</label>
+                                        <span class="value" id="cf-hue-value">0</span>
+                                    </div>
+                                    <input type="range" id="cf-hue" min="-180" max="180" value="0">
+                                </div>
+                            </div>
+                            <div class="custom-filter-actions">
+                                <button class="btn btn-primary w-full" id="btn-apply-custom-filter">✅ Apply Look</button>
+                                <button class="btn" id="btn-reset-custom-filter">↺</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RETOUCH panel -->
+                <div class="tool-pane" id="pane-retouch" style="display:none;">
+                    <div class="pane-section">
+                        <div class="pane-tooltip"><div class="pane-tooltip-title">🪄 Brush Retouch</div>Paint directly onto your image to heal blemishes, smooth textures, or sharpen details. Adjust the brush radius and strength, then click or drag.</div>
+                        <p class="pane-label">Brush Retouch</p>
+                        <p class="pane-desc">Click or drag on the image to apply retouching.</p>
+                        <div class="retouch-mode-toggle">
+                            <button class="mode-btn active" id="btn-retouch-heal" data-retouch="heal">
+                                <span class="mode-icon">🩹</span>
+                                <span class="mode-label">Heal</span>
+                            </button>
+                            <button class="mode-btn" id="btn-retouch-smooth" data-retouch="smooth">
+                                <span class="mode-icon">🌊</span>
+                                <span class="mode-label">Smooth</span>
+                            </button>
+                            <button class="mode-btn" id="btn-retouch-sharpen" data-retouch="sharpen">
+                                <span class="mode-icon">💎</span>
+                                <span class="mode-label">Sharpen</span>
+                            </button>
+                        </div>
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="label" for="retouch-radius">Brush Radius</label>
+                                <span class="value" id="retouch-radius-value">20</span>
+                            </div>
+                            <input type="range" id="retouch-radius" min="5" max="80" value="20">
+                        </div>
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="label" for="retouch-strength">Strength</label>
+                                <span class="value" id="retouch-strength-value">50</span>
+                            </div>
+                            <input type="range" id="retouch-strength" min="1" max="100" value="50">
+                        </div>
+                        <p class="pane-hint" id="retouch-hint">Click or drag on the image to heal spots.</p>
+                    </div>
+                </div>
+
+                <!-- OBJECTS panel -->
+                <div class="tool-pane" id="pane-objects" style="display:none;">
+                    <div class="pane-section">
+                        <div class="pane-tooltip"><div class="pane-tooltip-title">🎯 Add / Remove Objects</div>Switch between Add and Remove mode. Draw a rectangle on the canvas, then generate a new object or remove the selected area using AI.</div>
+                        <p class="pane-label">Add / Remove Objects</p>
+                        <p class="pane-desc">Draw a rectangle on the image, then choose to add or remove.</p>
+                        <div class="objects-mode-toggle">
+                            <button class="mode-btn active" id="btn-mode-add">
+                                <span class="mode-icon">➕</span>
+                                <span class="mode-label">Add</span>
+                            </button>
+                            <button class="mode-btn" id="btn-mode-remove">
+                                <span class="mode-icon">➖</span>
+                                <span class="mode-label">Remove</span>
+                            </button>
+                        </div>
+                        <p class="pane-hint" id="objects-instruction-text">Draw a rectangle where you want to add an object.</p>
+                        <div id="add-object-input">
+                            <input type="text" id="object-prompt" class="text-input" placeholder="e.g., a red balloon…">
+                            <button class="btn btn-ai w-full" id="btn-generate-object" disabled style="margin-top:6px;">✨ Generate Object</button>
+                        </div>
+                        <div id="remove-object-actions" style="display:none;">
+                            <button class="btn btn-ai w-full" id="btn-remove-object" disabled>🗑️ Remove Selected Area</button>
+                        </div>
+                        <button class="btn btn-small w-full" id="btn-clear-selection" style="margin-top:8px;" disabled>✖ Clear Selection</button>
+                    </div>
+                </div>
+
+                <!-- AI TOOLS panel -->
+                <div class="tool-pane" id="pane-ai" style="display:none;">
+                    <div class="pane-section">
+                        <div class="pane-tooltip"><div class="pane-tooltip-title">⚡ One-Click AI</div>Let AI automatically improve your entire photo — it will optimise brightness, contrast and saturation in one go.</div>
+                        <p class="pane-label">⚡ One-Click AI</p>
+                        <button class="btn-ai-big" id="btn-ai-overall">
+                            <span class="ai-big-icon">🪄</span>
+                            <span class="ai-big-label">AI Edit Everything</span>
+                            <span class="ai-big-desc">Auto-enhance the full photo</span>
+                        </button>
+                    </div>
+                    <div class="pane-section">
+                        <div class="pane-tooltip"><div class="pane-tooltip-title">🤖 AI by Category</div>Target a specific area: AI Adjust optimises light and colour, AI Filter picks the best style filter, AI Crop suggests the ideal framing, AI Retouch cleans up imperfections.</div>
+                        <p class="pane-label">AI by Category</p>
+                        <div class="ai-btn-list">
+                            <button class="ai-cat-btn" id="btn-ai-adjust">
+                                <span>🎨</span><span class="ai-cat-label">AI Adjust</span>
+                            </button>
+                            <button class="ai-cat-btn" id="btn-ai-filter">
+                                <span>✨</span><span class="ai-cat-label">AI Filter</span>
+                            </button>
+                            <button class="ai-cat-btn" id="btn-ai-crop">
+                                <span>✂️</span><span class="ai-cat-label">AI Crop</span>
+                            </button>
+                            <button class="ai-cat-btn" id="btn-ai-retouch-btn">
+                                <span>🪄</span><span class="ai-cat-label">AI Retouch</span>
+                            </button>
+                        </div>
+                        <div class="filter-ai-result" id="filter-ai-result" style="display:none;">
+                            <div class="filter-ai-applied" id="filter-ai-applied-label"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TEXT panel -->
+                <div class="tool-pane" id="pane-text" style="display:none;">
+                    <div class="pane-section">
+                        <div class="pane-tooltip"><div class="pane-tooltip-title">T Text Tool</div>Set a font size and colour, then click anywhere on your image to type. The text is permanently stamped onto the image — use Undo to remove it.</div>
+                        <p class="pane-desc">Click on the image to place text.</p>
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="label" for="text-size">Font Size</label>
+                                <span class="value" id="text-size-value">24</span>
+                            </div>
+                            <input type="range" id="text-size" min="10" max="120" value="24">
+                        </div>
+                        <div class="pane-label" style="margin-bottom:6px; margin-top:4px;">Colour</div>
+                        <div class="color-swatches">
+                            <button class="color-swatch active" data-color="#ffffff" style="background:#ffffff;"></button>
+                            <button class="color-swatch" data-color="#000000" style="background:#000000;"></button>
+                            <button class="color-swatch" data-color="#e94560" style="background:#e94560;"></button>
+                            <button class="color-swatch" data-color="#ff9f43" style="background:#ff9f43;"></button>
+                            <button class="color-swatch" data-color="#feca57" style="background:#feca57;"></button>
+                            <button class="color-swatch" data-color="#10ac84" style="background:#10ac84;"></button>
+                            <button class="color-swatch" data-color="#58a6ff" style="background:#58a6ff;"></button>
+                            <button class="color-swatch" data-color="#c44dff" style="background:#c44dff;"></button>
+                        </div>
+                        <p class="pane-hint" style="margin-top:10px;">Click on the canvas to place text.</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Canvas Area -->
-            <div class="canvas-area">
-                <!-- Drop Zone -->
+            <!-- === Canvas Area === -->
+            <div class="canvas-area" id="canvas-area">
                 <div class="drop-zone" id="drop-zone">
                     <div class="drop-zone-content">
                         <div class="drop-zone-icon">🖼️</div>
                         <h2>Open an image to start editing</h2>
                         <p>Drag & drop an image here, or click the button below</p>
-                        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
-                            📂 Choose Image
-                        </button>
+                        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">📂 Choose Image</button>
                     </div>
                 </div>
-
-                <!-- Canvas -->
                 <div class="canvas-wrapper">
                     <canvas id="editor-canvas"></canvas>
                     <canvas id="annotation-overlay"></canvas>
                     <canvas id="crop-overlay"></canvas>
                 </div>
-
-                <!-- Annotation mode indicator -->
-                <div class="mode-indicator" id="mode-indicator" style="display: none;">
+                <!-- Compare overlay -->
+                <canvas id="compare-canvas" style="display:none; position:absolute; top:0; left:0; pointer-events:none; opacity:1;"></canvas>
+                <div class="compare-badge" id="compare-badge" style="display:none;">Original</div>
+                <!-- Retouch cursor -->
+                <div class="retouch-cursor" id="retouch-cursor" style="display:none;"></div>
+                <div class="mode-indicator" id="mode-indicator" style="display:none;">
                     <span class="mode-dot"></span>
-                    <span>Annotation Mode</span>
-                </div>
-
-                <!-- Crop Actions -->
-                <div class="crop-actions" id="crop-actions">
-                    <button class="btn btn-primary" id="btn-crop-apply">✅ Apply Crop</button>
-                    <button class="btn" id="btn-crop-cancel">❌ Cancel</button>
+                    <span id="mode-indicator-text">Crop Mode</span>
                 </div>
             </div>
+
+            <!-- === Right AI Panel === -->
+            <div class="ai-panel" id="ai-panel">
+                <div class="ai-panel-header">
+                    <span class="ai-panel-title" id="ai-panel-title">AI Suggestions</span>
+                    <button class="tool-panel-close" id="ai-panel-close" title="Close">✕</button>
+                </div>
+                <div class="ai-panel-body" id="ai-panel-body"></div>
+            </div>
+
         </div>
     </div>
 
+    <!-- ===== Floating AI Chatbot ===== -->
+    <div class="chatbot-bubble" id="chatbot-bubble" title="AI Assistant">🤖</div>
+    <div class="chatbot-float" id="chatbot-float">
+        <div class="chatbot-float-header">
+            <span class="chatbot-float-title">🤖 AI Assistant</span>
+            <button class="chatbot-float-close" id="chatbot-float-close">✕</button>
+        </div>
+        <div class="chatbot-messages" id="chatbot-messages">
+            <div class="chat-message bot">
+                <span class="chat-avatar">🤖</span>
+                <div class="chat-bubble">Hi! I'm your photo editing assistant. Ask me anything about editing your photo!</div>
+            </div>
+        </div>
+        <div class="chatbot-input-area">
+            <input type="text" id="chatbot-input" class="chatbot-input" placeholder="Ask me anything…">
+            <button class="btn btn-primary chatbot-send" id="chatbot-send">➤</button>
+        </div>
+    </div>
+
+    <!-- Tour click blocker -->
+    <div class="tour-blocker hidden" id="tour-blocker"></div>
+
     <div class="snackbar" id="snackbar"></div>
 
-    <!-- AI Filter Feedback Modal -->
-    <div class="modal-overlay hidden" id="ai-feedback-overlay">
-        <div class="modal-card" id="ai-feedback-modal">
+    <!-- AI Feedback Toast -->
+    <div class="ai-feedback-toast" id="ai-feedback-toast">
+        <div class="ai-feedback-toast-inner">
+            <div class="ai-feedback-left">
+                <span class="ai-feedback-icon">🤖</span>
+                <div class="ai-feedback-text">
+                    <span class="ai-feedback-label" id="ai-feedback-label">AI applied!</span>
+                    <span class="ai-feedback-sub">Help us improve — was this good?</span>
+                </div>
+            </div>
+            <div class="ai-feedback-actions">
+                <button class="ai-fb-btn ai-fb-up" id="ai-fb-up" title="Good result">👍</button>
+                <button class="ai-fb-btn ai-fb-down" id="ai-fb-down" title="Not great">👎</button>
+                <button class="ai-fb-undo" id="ai-fb-undo" title="Undo this AI action">↩ Undo</button>
+                <button class="ai-fb-close" id="ai-fb-close">✕</button>
+            </div>
+        </div>
+        <div class="ai-feedback-thanks" id="ai-feedback-thanks" style="display:none;">
+            <span id="ai-feedback-thanks-text">Thanks for your feedback! 🙌</span>
+        </div>
+    </div>
+
+    <!-- App Feedback Modal -->
+    <div class="modal-overlay" id="app-feedback-overlay" style="display:none;">
+        <div class="modal-card" style="max-width:400px;">
             <div class="modal-header">
-                <span class="modal-icon">🤖</span>
-                <h2 class="modal-title">AI Filter Applied</h2>
+                <span class="modal-icon">💬</span>
+                <h2 class="modal-title">Share your thoughts</h2>
             </div>
-
-            <p class="modal-desc">The AI applied the <strong id="ai-feedback-filter-name"></strong> filter to your image.</p>
-
-            <!-- AI reasoning context -->
-            <div class="feedback-context-box" id="ai-feedback-context">
-                <div class="feedback-context-row">
-                    <span class="feedback-context-label">🔍 Why this filter?</span>
-                    <span class="feedback-context-value" id="ai-feedback-reason"></span>
-                </div>
-                <div class="feedback-context-row">
-                    <span class="feedback-context-label">✨ What it does:</span>
-                    <span class="feedback-context-value" id="ai-feedback-effect"></span>
-                </div>
-                <div class="feedback-context-row">
-                    <span class="feedback-context-label">📊 AI confidence:</span>
-                    <span class="feedback-context-value" id="ai-feedback-confidence"></span>
-                </div>
+            <p class="modal-desc">We're always improving PhotoEdit. Your feedback genuinely matters — it takes 30 seconds!</p>
+            <div class="app-fb-stars" id="app-fb-stars">
+                <span class="star-btn" data-star="1">⭐</span>
+                <span class="star-btn" data-star="2">⭐</span>
+                <span class="star-btn" data-star="3">⭐</span>
+                <span class="star-btn" data-star="4">⭐</span>
+                <span class="star-btn" data-star="5">⭐</span>
             </div>
-
-            <p class="feedback-rate-label">Was this a good suggestion?</p>
-
-            <div class="feedback-thumbs">
-                <button class="thumb-btn thumb-up" id="ai-feedback-up" title="Good suggestion">👍 Good pick</button>
-                <button class="thumb-btn thumb-down" id="ai-feedback-down" title="Bad suggestion">👎 Not great</button>
-            </div>
-
-            <div class="feedback-comment hidden" id="feedback-comment-wrap">
-                <label class="label" for="feedback-comment-input">Tell us more (optional)</label>
-                <textarea id="feedback-comment-input" class="feedback-textarea" rows="3" placeholder="e.g. The image was too dark for this filter…"></textarea>
-            </div>
-
+            <textarea id="app-fb-text" class="feedback-textarea" rows="3" placeholder="What could be better? What do you love? (optional)"></textarea>
             <div class="modal-actions">
-                <button class="btn" id="ai-feedback-undo">↩️ Undo filter</button>
-                <button class="btn btn-primary" id="ai-feedback-submit">✅ Submit & keep</button>
+                <button class="btn" id="app-fb-cancel">Maybe later</button>
+                <button class="btn btn-primary" id="app-fb-submit">Send feedback 🚀</button>
             </div>
         </div>
     </div>

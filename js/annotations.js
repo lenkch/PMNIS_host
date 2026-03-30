@@ -36,7 +36,7 @@ export class AnnotationLayer {
         this.ctx = this.overlay.getContext('2d');
         this.editorCanvas = editorCanvas;
         this.annotations = [];
-        this.currentTool = ANNOTATION_TOOLS.FREEHAND;
+        this.currentTool = ANNOTATION_TOOLS.RECTANGLE;
         this.currentColor = ANNOTATION_COLORS[0];
         this.lineWidth = 3;
         this.fontSize = 16;
@@ -45,6 +45,7 @@ export class AnnotationLayer {
         this.currentPath = [];
         this.startPoint = null;
         this.selectedId = null;
+
 
         this._onMouseDown = this._onMouseDown.bind(this);
         this._onMouseMove = this._onMouseMove.bind(this);
@@ -237,8 +238,9 @@ export class AnnotationLayer {
     }
 
     _onMouseMove(e) {
-        if (!this.drawing) return;
         const coords = this._getCanvasCoords(e);
+
+        if (!this.drawing) return;
 
         if (this.currentTool === ANNOTATION_TOOLS.FREEHAND) {
             this.currentPath.push(coords);
@@ -249,6 +251,7 @@ export class AnnotationLayer {
     }
 
     _onMouseUp(e) {
+
         if (!this.drawing) return;
         const coords = this._getCanvasCoords(e);
         this.drawing = false;
