@@ -336,6 +336,43 @@ body {
     color: var(--text-secondary); font-weight: 600;
     padding-bottom: 6px; border-bottom: 1px solid var(--border);
 }
+.selection-list {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    max-height: 170px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+.selection-item {
+    padding: 8px 9px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-primary);
+}
+.selection-item:last-child { border-bottom: none; }
+.selection-item.ai-selection { background: rgba(46,160,67,.06); }
+.selection-item.user-selection { background: rgba(88,166,255,.05); }
+.selection-item .selection-source {
+    font-weight: 700; text-transform: uppercase; letter-spacing: .4px; font-size: 10px;
+    color: var(--text-secondary); margin-bottom: 2px;
+}
+.selection-item .selection-meta {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+}
+.selection-item .selection-remove-btn {
+    border: 0; background: rgba(233, 69, 96, .12); color: #e94560;
+    font-size: 12px; width: 20px; height: 20px; border-radius: 999px;
+    cursor: pointer; line-height: 1; display: inline-flex; align-items: center; justify-content: center;
+}
+.selection-item .selection-remove-btn:hover {
+    background: rgba(233, 69, 96, .22);
+}
+.selection-item .selection-reason {
+    font-size: 11px; color: var(--text-secondary); margin-top: 4px;
+}
 /* AI cat-btn and overall applied state */
 .ai-cat-btn.ai-applied { border-color: var(--accent) !important; background: rgba(46,160,67,.12) !important; color: var(--accent) !important; cursor: default; }
 .btn-ai-big.ai-applied { border-color: var(--accent) !important; background: rgba(46,160,67,.12) !important; }

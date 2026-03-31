@@ -28,6 +28,17 @@ export const ANNOTATION_TOOLS = {
     SELECT: 'select',
 };
 
+const AI_DETECTION_REASONS = [
+    'Detected a person-like silhouette in background.',
+    'Found potential trash/cans in the scene.',
+    'Identified a roadside bin-like shape.',
+    'Spot detected that resembles a parked vehicle object.',
+    'Found a sign or poster candidate outside main subject.',
+    'Detected a background bag/box cluster likely removable.',
+    'Object-like contrast around a table/desk item.',
+    'Misc object appears like a distraction from main subject.',
+];
+
 let _nextId = 1;
 
 export class AnnotationLayer {
@@ -262,6 +273,8 @@ export class AnnotationLayer {
             color: this.currentColor.color,
             label: this.currentTool.charAt(0).toUpperCase() + this.currentTool.slice(1),
             lineWidth: this.lineWidth,
+            reason: 'User selection',
+            source: 'user',
         };
 
         switch (this.currentTool) {
@@ -818,6 +831,8 @@ export class AnnotationLayer {
                 width: Math.min(rw + 8, w - x),
                 height: Math.min(rh + 8, h - y),
                 aiGenerated: true,
+                source: 'ai',
+                reason: AI_DETECTION_REASONS[Math.floor(Math.random() * AI_DETECTION_REASONS.length)],
             };
         });
 

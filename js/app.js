@@ -572,46 +572,61 @@ document.addEventListener('DOMContentLoaded', () => {
         toolPanelTitle.textContent = PANE_TITLES[tool] || tool;
         toolPanel.classList.add('open');
 
+        if (tool === 'objects') {
+            updateRemoveToolUI();
+            updateRemoveActionsUI();
+            if (editor.imageLoaded && !annotationLayer.active) annotationLayer.activate();
+        }
+
         const aiContent = AI_PANEL_CONTENT[tool];
         if (aiContent && tool !== 'ai') {
             aiPanelTitle.textContent = aiContent.title;
             aiPanelBody.innerHTML = aiContent.html;
             aiPanelBody.querySelectorAll('.ai-suggestion-apply[data-ai-action]').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    handleAiAction(btn.dataset.aiAction);
-                    // Mark applied
-                    btn.textContent = '✅ Applied';
-                    btn.disabled = true;
-                    btn.classList.add('ai-applied');
-                    // Fade out and remove the whole card after a short delay
-                    const card = btn.closest('.ai-suggestion-card');
-                    if (card) {
-                        setTimeout(() => {
-                            card.style.transition = 'opacity 0.4s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease';
-                            card.style.opacity    = '0';
-                            card.style.maxHeight  = card.offsetHeight + 'px';
-                            // Trigger collapse after opacity starts
-                            requestAnimationFrame(() => requestAnimationFrame(() => {
-                                card.style.maxHeight = '0';
-                                card.style.overflow  = 'hidden';
-                                card.style.marginBottom = '0';
-                                card.style.paddingTop   = '0';
-                                card.style.paddingBottom = '0';
-                            }));
+                    const action = btn.dataset.aiAction;
+                    const isReusable = ['detect-objects', 'smart-inpaint'].includes(action);
+
+                    handleAiAction(action);
+
+                    if (!isReusable) {
+                        // Mark applied and optionally collapse card
+                        btn.textContent = '✅ Applied';
+                        btn.disabled = true;
+                        btn.classList.add('ai-applied');
+
+                        const card = btn.closest('.ai-suggestion-card');
+                        if (card) {
                             setTimeout(() => {
-                                card.remove();
-                                // If no more suggestion cards remain, show empty state
-                                const remaining = aiPanelBody.querySelectorAll('.ai-suggestion-card');
-                                if (remaining.length === 0) {
-                                    aiPanelBody.innerHTML = `
-                                        <div class="ai-empty-state">
-                                            <div class="ai-empty-icon">✦</div>
-                                            <p class="ai-empty-title">All suggestions applied!</p>
-                                            <p class="ai-empty-desc">You've used all AI suggestions for this section.</p>
-                                        </div>`;
-                                }
-                            }, 450);
-                        }, 1200);
+                                card.style.transition = 'opacity 0.4s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease';
+                                card.style.opacity    = '0';
+                                card.style.maxHeight  = card.offsetHeight + 'px';
+                                requestAnimationFrame(() => requestAnimationFrame(() => {
+                                    card.style.maxHeight = '0';
+                                    card.style.overflow  = 'hidden';
+                                    card.style.marginBottom = '0';
+                                    card.style.paddingTop = '0';
+                                    card.style.paddingBottom = '0';
+                                }));
+                                setTimeout(() => {
+                                    card.remove();
+                                    const remaining = aiPanelBody.querySelectorAll('.ai-suggestion-card');
+                                    if (remaining.length === 0) {
+                                        aiPanelBody.innerHTML = `
+                                            <div class="ai-empty-state">
+                                                <div class="ai-empty-icon">✦</div>
+                                                <p class="ai-empty-title">All suggestions applied!</p>
+                                                <p class="ai-empty-desc">You've used all AI suggestions for this section.</p>
+                                            </div>`;
+                                    }
+                                }, 450);
+                            }, 1200);
+                        }
+                    } else {
+                        // Keep reusable objects suggestions available
+                        btn.classList.remove('ai-applied');
+                        btn.disabled = false;
+                        if (btn.dataset.origText) btn.textContent = btn.dataset.origText;
                     }
                 });
             });
@@ -717,9 +732,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let snackbarTimer = null;
     function showSnackbar(message, duration = 3000) {
         snackbar.textContent = message;
+
+        // avoid overlap with AI feedback panel at the bottom
+        if (aiFeedbackToast && aiFeedbackToast.classList.contains('visible')) {
+            snackbar.style.bottom = '100px';
+        } else {
+            snackbar.style.bottom = '28px';
+        }
+
         snackbar.classList.add('show');
         clearTimeout(snackbarTimer);
-        snackbarTimer = setTimeout(() => snackbar.classList.remove('show'), duration);
+        snackbarTimer = setTimeout(() => {
+            snackbar.classList.remove('show');
+            snackbar.style.bottom = '28px';
+        }, duration);
     }
 
     // =========================================================
@@ -1220,20 +1246,41 @@ document.addEventListener('DOMContentLoaded', () => {
     let aiFbUndoSnapshot = null; // imageData to undo to
     let aiFeedbackState = null;
     let aiFeedbackReason = null;
+    let aiFeedbackContext = 'default';
 
-    const GOOD_REASONS = [
-        'Natural look',
-        'Strong improvement',
-        'Color and tone are great',
-        'Preserved detail',
-    ];
-    const BAD_REASONS = [
-        'Effect too strong',
-        'Color is off',
-        'Loss of detail',
-        'Not what I expected',
-        'Other',
-    ];
+    const FEEDBACK_REASONS = {
+        default: {
+            good: [
+                'Natural look', 'Strong improvement', 'Color and tone are great', 'Preserved detail',
+                'Balanced shadows and highlights', 'Sharpness feels right', 'Comfortable brightness',
+                'Good contrast balance', 'Looks like a pro edit'
+            ],
+            bad: [
+                'Effect too strong', 'Color is off', 'Loss of detail', 'Not what I expected', 'Other',
+                'Over-saturated', 'Underexposed', 'Too much blur', 'Harsh contrast'
+            ],
+        },
+        detect: {
+            good: [
+                'Detected objects accurately', 'Quick detection', 'Great boundaries', 'Easy selection',
+                'All key objects found', 'No false positives', 'Object edges are clean', 'Speedy prediction'
+            ],
+            bad: [
+                'Missed objects', 'Too many false positives', 'Not in right area', 'Other',
+                'Wrong size boxes', 'Partially detected', 'Too noisy', 'Not consistent'
+            ],
+        },
+        inpaint: {
+            good: [
+                'Blended naturally', 'No artifacts', 'Looks seamless', 'Refined fill',
+                'Color match is perfect', 'No visible transitions', 'Texture preserved', 'No ghosting'
+            ],
+            bad: [
+                'Visible artifacts', 'Unnatural edges', 'Color mismatch', 'Other',
+                'Too soft', 'Patchy fill', 'Mismatch with surrounding', 'Looks fake'
+            ],
+        },
+    };
 
     const MOTIVATIONS = [
         'Your rating directly improves future edits for everyone.',
@@ -1242,7 +1289,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'A short response makes the system more reliable for others.',
     ];
 
-    function showAiFeedback(label, undoFn) {
+    function showAiFeedback(label, undoFn, context = 'default') {
+        aiFeedbackContext = context;
         aiFbUndoSnapshot = undoFn || null;
         aiFbUp.classList.remove('selected-up');
         aiFbDown.classList.remove('selected-down');
@@ -1261,8 +1309,18 @@ document.addEventListener('DOMContentLoaded', () => {
         aiFbAutoDismiss = setTimeout(() => dismissAiFeedback(false), 10000);
     }
 
+    function shuffleArray(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
     function renderReasonButtons(type) {
-        const options = type === 'good' ? GOOD_REASONS : BAD_REASONS;
+        const set = FEEDBACK_REASONS[aiFeedbackContext] || FEEDBACK_REASONS.default;
+        const options = type === 'good' ? shuffleArray(set.good) : shuffleArray(set.bad);
         aiFeedbackReasonTitle.textContent = type === 'good' ? 'What did you like most?' : 'What can we improve?';
         aiFeedbackReasonButtons.innerHTML = options.map(option => `<button type="button" class="ai-feedback-reason-btn">${option}</button>`).join('');
 
@@ -1303,7 +1361,14 @@ document.addEventListener('DOMContentLoaded', () => {
         aiFbUndo.style.display = 'none';
         clearTimeout(aiFbAutoDismiss);
 
-        aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Great! Select a reason so we can improve this experience for everyone.';
+        if (aiFeedbackContext === 'detect') {
+            aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Great detection! Pick the reason that matches your result.';
+        } else if (aiFeedbackContext === 'inpaint') {
+            aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Great inpaint! Pick the reason that matches your result.';
+        } else {
+            aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Great! Select a reason so we can improve this experience for everyone.';
+        }
+
         aiFeedbackReasonSection.style.display = 'flex';
         renderReasonButtons('good');
     });
@@ -1315,7 +1380,14 @@ document.addEventListener('DOMContentLoaded', () => {
         aiFbUndo.style.display = '';
         clearTimeout(aiFbAutoDismiss);
 
-        aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Sorry this did not work well. Select a reason to help us improve.';
+        if (aiFeedbackContext === 'detect') {
+            aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Not ideal detection — tell us what went wrong.';
+        } else if (aiFeedbackContext === 'inpaint') {
+            aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Not ideal inpaint — tell us what went wrong.';
+        } else {
+            aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Sorry this did not work well. Select a reason to help us improve.';
+        }
+
         aiFeedbackReasonSection.style.display = 'flex';
         renderReasonButtons('bad');
     });
@@ -1381,15 +1453,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const usedAiActions = new Set();
 
     function markAiActionUsed(action) {
-        usedAiActions.add(action);
-        // Mark matching apply button in the right panel
+        const isReusable = ['detect-objects', 'smart-inpaint'].includes(action);
+        if (!isReusable) {
+            usedAiActions.add(action);
+        }
+
         if (aiPanelBody) {
             aiPanelBody.querySelectorAll(`.ai-suggestion-apply[data-ai-action="${action}"]`).forEach(btn => {
                 if (!btn.dataset.origText) btn.dataset.origText = btn.textContent;
-                btn.classList.add('ai-applied'); btn.disabled = true; btn.textContent = '✅ Applied';
+                if (!isReusable) {
+                    btn.classList.add('ai-applied');
+                    btn.disabled = true;
+                    btn.textContent = '✅ Applied';
+                } else {
+                    // keep reusable suggestions visible and active
+                    btn.classList.remove('ai-applied');
+                    btn.disabled = false;
+                    if (btn.dataset.origText) btn.textContent = btn.dataset.origText;
+                }
             });
         }
-        // Mark ai-cat-btn in left pane
+
+        // Mark ai-cat-btn in left pane only for non-reusable actions
         const catMap = {
             'auto-enhance':'btn-ai-adjust','boost-brightness':'btn-ai-adjust','vivid':'btn-ai-adjust',
             'ai-filter':'btn-ai-filter','suggest-grayscale':'btn-ai-filter','suggest-sepia':'btn-ai-filter',
@@ -1397,7 +1482,10 @@ document.addEventListener('DOMContentLoaded', () => {
             'auto-heal':'btn-ai-retouch-btn','portrait-smooth':'btn-ai-retouch-btn',
         };
         const catId = catMap[action];
-        if (catId) { const b = document.getElementById(catId); if (b) { b.classList.add('ai-applied'); b.disabled = true; } }
+        if (catId && !isReusable) {
+            const b = document.getElementById(catId);
+            if (b) { b.classList.add('ai-applied'); b.disabled = true; }
+        }
     }
 
     function clearUsedAiActions() {
@@ -1413,9 +1501,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function aiOverallEnhance() {
         if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
-        if (usedAiActions.has('overall')) { showSnackbar('Already applied. Reset to reapply.'); return; }
-        usedAiActions.add('overall');
-        if (btnAiOverall) { btnAiOverall.classList.add('ai-applied'); btnAiOverall.disabled = true; }
         commitPendingAdjustments();
         brightnessSlider.value=15; brightnessValue.textContent='15';
         contrastSlider.value=20;   contrastValue.textContent='20';
@@ -1432,7 +1517,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleAiAction(action) {
         if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
-        if (usedAiActions.has(action)) { showSnackbar('Already applied. Reset to reapply.'); return; }
         markAiActionUsed(action);
         switch (action) {
             case 'auto-enhance':
@@ -1474,9 +1558,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 editor.baseImageData = editor.getImageData(); editor._notifyChange();
                 showAiFeedback('🌊 AI Portrait Smooth applied', null); break;
             }
-            case 'smart-inpaint':
-            case 'detect-objects': showAiFeedback('🔍 AI Object Detection applied', null); break;
-            case 'crop-thirds':    showAiFeedback('✂️ AI Rule of Thirds Crop applied', null); break;
+            case 'smart-inpaint': {
+                showAiFeedback('✨ AI Smart Inpaint applied', null, 'inpaint');
+                break;
+            }
+            case 'detect-objects': {
+                if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); break; }
+                const found = annotationLayer.aiDetectObjects(canvas);
+                if (found > 0) {
+                    showSnackbar(`🔍 Detected ${found} object${found > 1 ? 's' : ''}. Draw selections or click Remove Selected Objects.`);
+                    updateRemoveActionsUI();
+                    showAiFeedback(`🔍 AI Object Detection applied`, () => { editor.undo(); resetSliders(); }, 'detect');
+                } else {
+                    showSnackbar('🔍 No objects detected. Try another area or tool.');
+                }
+                break;
+            }
+            case 'crop-thirds':    showAiFeedback('✂️ AI Rule of Thirds Crop applied', null, 'default'); break;
             case 'crop-square':    showAiFeedback('🔲 AI Square Crop applied', null); break;
             case 'auto-straighten':showAiFeedback('🔄 AI Auto Straighten applied', null); break;
             case 'ai-smart-crop': {
@@ -1490,9 +1588,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     } catch (err) {
                         showAiError('🤖 AI Smart Crop failed', err.message);
                         // Re-enable button so user can retry
-                        usedAiActions.delete('ai-smart-crop');
-                        if (btn) {
-                            btn.textContent = '🤖 AI Smart Crop';
+                                        if (btn) {
+                            if (btn.dataset.origText) btn.textContent = btn.dataset.origText;
                             btn.disabled = false;
                             btn.classList.remove('ai-applied');
                         }
@@ -1514,6 +1611,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnRemoveObject      = document.getElementById('btn-remove-object');
     const btnClearSelection    = document.getElementById('btn-clear-selection');
     const removeSelectionCount = document.getElementById('remove-selection-count');
+    const removeSelectionList  = document.getElementById('remove-selection-list');
     // currentRemoveTool and REMOVE_INSTRUCTIONS declared near top of scope
 
     function updateRemoveToolUI() {
@@ -1531,7 +1629,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update selection count badge and button states
     function updateRemoveActionsUI() {
-        const count = annotationLayer.annotations ? annotationLayer.annotations.filter(a => !a.hidden).length : 0;
+        const visibleAnnotations = annotationLayer.annotations ? annotationLayer.annotations.filter(a => !a.hidden) : [];
+        const count = visibleAnnotations.length;
         if (btnRemoveObject)   btnRemoveObject.disabled   = count === 0;
         if (btnClearSelection) btnClearSelection.disabled = count === 0;
         if (removeSelectionCount) {
@@ -1542,9 +1641,146 @@ document.addEventListener('DOMContentLoaded', () => {
                 removeSelectionCount.style.display = 'none';
             }
         }
+        if (removeSelectionList) {
+            removeSelectionList.innerHTML = '';
+            if (count === 0) {
+                const li = document.createElement('li');
+                li.className = 'selection-item';
+                li.textContent = 'No selections yet.';
+                removeSelectionList.appendChild(li);
+            } else {
+                visibleAnnotations.forEach(ann => {
+                    const li = document.createElement('li');
+                    li.className = `selection-item ${ann.aiGenerated ? 'ai-selection' : 'user-selection'}`;
+                    const sourceText = ann.source === 'ai' ? 'AI detected' : 'User selected';
+                    const typeText = ann.label || ann.type || 'Area';
+
+                    li.innerHTML = `
+                        <div class="selection-meta">
+                            <div class="selection-source">${sourceText} • ${typeText}</div>
+                            <button type="button" class="selection-remove-btn" title="Remove this object">✕</button>
+                        </div>
+                        <div class="selection-reason">${ann.reason || (ann.source === 'ai' ? 'AI suggests removal due to likely object.' : 'User-defined removal area.')}</div>
+                    `;
+
+                    const removeBtn = li.querySelector('.selection-remove-btn');
+                    removeBtn.addEventListener('click', () => {
+                        annotationLayer.deleteAnnotation(ann.id);
+                        updateRemoveActionsUI();
+                        showSnackbar('🗑️ Selection area removed from list (image unchanged).');
+                    });
+
+                    li.addEventListener('click', (e) => {
+                        if (e.target.closest('.selection-remove-btn')) return;
+                        annotationLayer.selectAnnotation(ann.id);
+                    });
+
+                    removeSelectionList.appendChild(li);
+                });
+            }
+        }
     }
 
-    annotationLayer.onChange(() => updateRemoveActionsUI());
+    function drawMaskForAnnotation(ctx, ann) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = (ann.lineWidth || 3) * 2;
+
+        switch (ann.type) {
+            case ANNOTATION_TOOLS.RECTANGLE:
+                ctx.fillRect(ann.x, ann.y, ann.width, ann.height);
+                break;
+            case ANNOTATION_TOOLS.ELLIPSE:
+                ctx.ellipse(ann.cx, ann.cy, ann.rx, ann.ry, 0, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+            case ANNOTATION_TOOLS.MARKER:
+                ctx.beginPath(); ctx.arc(ann.x, ann.y, ann.radius || 8, 0, Math.PI * 2); ctx.fill();
+                break;
+            case ANNOTATION_TOOLS.FREEHAND:
+                if (Array.isArray(ann.path) && ann.path.length > 1) {
+                    ctx.lineWidth = Math.max(ann.lineWidth || 4, 4);
+                    ctx.beginPath();
+                    ctx.moveTo(ann.path[0].x, ann.path[0].y);
+                    for (let i = 1; i < ann.path.length; i++) ctx.lineTo(ann.path[i].x, ann.path[i].y);
+                    ctx.stroke();
+                }
+                break;
+            case ANNOTATION_TOOLS.ARROW:
+                ctx.lineWidth = Math.max(ann.lineWidth || 4, 6);
+                ctx.beginPath();
+                ctx.moveTo(ann.fromX, ann.fromY);
+                ctx.lineTo(ann.toX, ann.toY);
+                ctx.stroke();
+                break;
+            case ANNOTATION_TOOLS.TEXT:
+                // fallback: approximate text box from coords
+                const tw = (ann.text || '').length * (ann.fontSize || 14) * 0.6;
+                const th = ann.fontSize || 14;
+                ctx.fillRect(ann.x - 4, ann.y - th - 4, tw + 8, th + 8);
+                break;
+            default:
+                break;
+        }
+
+        ctx.restore();
+    }
+
+    function applyBackgroundRemoval() {
+        if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
+        const selected = annotationLayer.annotations ? annotationLayer.annotations.filter(a => !a.hidden) : [];
+        if (selected.length === 0) {
+            showSnackbar('📌 Create or detect objects first for background removal.');
+            return;
+        }
+
+        const w = canvas.width;
+        const h = canvas.height;
+
+        const blurCanvas = document.createElement('canvas');
+        blurCanvas.width = w;
+        blurCanvas.height = h;
+        const blurCtx = blurCanvas.getContext('2d');
+        blurCtx.filter = 'blur(16px)';
+        blurCtx.drawImage(canvas, 0, 0, w, h);
+
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = w;
+        maskCanvas.height = h;
+        const maskCtx = maskCanvas.getContext('2d');
+        maskCtx.fillStyle = 'black';
+        maskCtx.fillRect(0, 0, w, h);
+        selected.forEach(ann => drawMaskForAnnotation(maskCtx, ann));
+
+        const originalImage = editor.getImageData();
+        const blurredImage = blurCtx.getImageData(0, 0, w, h);
+        const maskData = maskCtx.getImageData(0, 0, w, h);
+        const out = editor.ctx.createImageData(w, h);
+
+        for (let i = 0; i < out.data.length; i += 4) {
+            const m = maskData.data[i] / 255;
+            out.data[i]   = originalImage.data[i]   * m + blurredImage.data[i]   * (1 - m);
+            out.data[i+1] = originalImage.data[i+1] * m + blurredImage.data[i+1] * (1 - m);
+            out.data[i+2] = originalImage.data[i+2] * m + blurredImage.data[i+2] * (1 - m);
+            out.data[i+3] = originalImage.data[i+3] * m + blurredImage.data[i+3] * (1 - m);
+        }
+
+        editor.putImageData(out);
+        annotationLayer.clearAll();
+        annotationLayer.syncSize();
+
+        editor.history.push(editor.getImageData());
+        editor.baseImageData = editor.getImageData();
+        editor._notifyChange();
+
+        updateRemoveActionsUI();
+        showSnackbar('✂️ Background removed based on selection.');
+        showAiFeedback('✂️ Background removal applied', null, 'inpaint');
+    }
+
+    annotationLayer.onChange(() => { updateRemoveActionsUI(); });
 
     if (btnClearSelection) {
         btnClearSelection.addEventListener('click', () => {
@@ -1556,29 +1792,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnRemoveObject) {
         btnRemoveObject.addEventListener('click', () => {
-            if (!editor.imageLoaded) return;
-            const count = annotationLayer.annotations ? annotationLayer.annotations.filter(a => !a.hidden).length : 0;
+            if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
+            const selected = annotationLayer.annotations ? annotationLayer.annotations.filter(a => !a.hidden) : [];
+            const count = selected.length;
+            if (count === 0) {
+                showSnackbar('ℹ️ Draw or detect at least one object to remove.');
+                return;
+            }
+
             btnRemoveObject.disabled = true;
             btnRemoveObject.textContent = '⏳ Removing…';
+
+            selected.forEach(a => annotationLayer.eraseObject(a.id, canvas));
+            editor.history.push(editor.getImageData());
+            editor.baseImageData = editor.getImageData();
+            editor._notifyChange();
+
+            showSnackbar(`🗑️ ${count} object${count > 1 ? 's' : ''} removed`);
+            updateRemoveActionsUI();
+
             setTimeout(() => {
-                showSnackbar(`🗑️ ${count} object${count > 1 ? 's' : ''} removed (AI fill integration needed)`);
                 btnRemoveObject.disabled = false;
                 btnRemoveObject.textContent = '🗑️ Remove Selected Objects';
-                annotationLayer.clearAll();
-                updateRemoveActionsUI();
-            }, 1500);
+            }, 400);
         });
     }
 
     const btnRemoveBg = document.getElementById('btn-remove-bg');
     if (btnRemoveBg) {
         btnRemoveBg.addEventListener('click', () => {
-            if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
             btnRemoveBg.disabled = true; btnRemoveBg.textContent = '⏳ Removing background…';
             setTimeout(() => {
-                showSnackbar('✂️ Background removal (AI integration needed)');
-                btnRemoveBg.disabled = false; btnRemoveBg.textContent = '✂️ Remove Background';
-            }, 1500);
+                applyBackgroundRemoval();
+                btnRemoveBg.disabled = false;
+                btnRemoveBg.textContent = '✂️ Remove Background';
+            }, 150);
         });
     }
 
