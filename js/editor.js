@@ -29,6 +29,36 @@ export class Editor {
     }
 
     /**
+     * Load an image directly from a URL.
+     */
+    loadImageFromUrl(url) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                this.originalImage = img;
+                let w = img.width, h = img.height;
+                const MAX = 4000;
+                if (w > MAX || h > MAX) {
+                    const ratio = Math.min(MAX / w, MAX / h);
+                    w = Math.round(w * ratio);
+                    h = Math.round(h * ratio);
+                }
+                this.canvas.width  = w;
+                this.canvas.height = h;
+                this.ctx.drawImage(img, 0, 0, w, h);
+                this.history.clear();
+                this.history.push(this.getImageData());
+                this.baseImageData = this.getImageData();
+                this.imageLoaded = true;
+                this._notifyChange();
+                resolve();
+            };
+            img.onerror = reject;
+            img.src = url;
+        });
+    }
+
+    /**
      * Load an image from a File object.
      */
     async loadImage(file) {

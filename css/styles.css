@@ -901,16 +901,6 @@ input[type="range"]::-moz-range-thumb {
     background: rgba(88,166,255,.08);
 }
 
-/* ===== Filter intensity section ===== */
-#filter-intensity-section {
-    flex-direction: column;
-    background: rgba(88,166,255,.06);
-    border: 1px solid rgba(88,166,255,.18);
-    border-radius: var(--radius);
-    animation: fadeIn .2s ease;
-}
-#filter-intensity-section .pane-label { color: var(--accent-secondary); }
-#filter-intensity-section .pane-desc  { font-size: 11px; margin-top: -4px; }
 .filter-btn.filter-applied {
     border-color: var(--accent);
     background: rgba(46,160,67,.12);
@@ -1061,89 +1051,122 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ===== Floating filter intensity overlay ===== */
-.filter-intensity-overlay {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 5000;
-    width: 340px;
-    animation: fadeIn .2s ease;
+.filter-intensity-inline {
+    background: rgba(88,166,255,.06);
+    border: 1px solid rgba(88,166,255,.22);
+    border-radius: 10px;
+    padding: 10px 12px;
+    gap: 8px;
+    animation: fadeIn .15s ease;
+    margin: 0;
 }
-.filter-intensity-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--accent-secondary);
-    border-radius: 14px;
-    padding: 22px 24px;
-    box-shadow: 0 12px 48px rgba(0,0,0,.65);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+.filter-intensity-actions {
+    display: flex; gap: 6px;
 }
+.filter-intensity-actions .btn { flex: 1; }
 .filter-intensity-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 .filter-intensity-name {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-.filter-intensity-val {
-    font-size: 18px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--accent-secondary);
-    min-width: 52px;
-    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: .5px;
 }
-.filter-intensity-hint {
-    font-size: 11px;
-    color: var(--text-secondary);
-    margin: 0;
+.filter-intensity-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-secondary);
 }
 .filter-intensity-range {
     width: 100%;
 }
 
-/* ===== Grouped AI suggestion styles ===== */
-.ai-suggestion-intro {
-    font-size: 11px;
-    color: var(--accent-secondary);
-    font-style: italic;
-    line-height: 1.5;
-    text-align: center;
+/* ===== Add Objects draggable overlay ===== */
+#add-obj-overlay {
+    border: 2px dashed var(--accent-secondary);
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.5);
+    z-index: 20;
 }
-.ai-suggestion-list {
-    list-style: none;
-    padding: 0; margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-.ai-suggestion-list li {
-    font-size: 11px;
-    color: var(--text-secondary);
-    line-height: 1.5;
-    padding: 4px 8px;
-    background: var(--bg-primary);
-    border-radius: 6px;
-    border-left: 2px solid var(--accent-secondary);
+#add-obj-overlay:hover { border-color: #fff; }
+#add-obj-overlay img { border-radius: 3px; }
+.add-obj-overlay-handle {
+    position: absolute; bottom: -22px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-secondary); color: #fff;
+    font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 10px;
+    white-space: nowrap; pointer-events: none;
+    letter-spacing: .3px;
 }
 
-/* ===== AI panel empty state ===== */
-.ai-empty-state {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 10px; padding: 32px 16px; text-align: center;
-    animation: fadeIn .3s ease;
+/* ===== Generate Image Modal ===== */
+.gen-modal-overlay {
+    display: none;
+    position: absolute; inset: 0; z-index: 300;
+    background: rgba(13,17,23,.82); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center;
 }
-.ai-empty-icon {
-    font-size: 32px; color: var(--text-secondary); opacity: .5;
+.gen-modal-overlay.open { display: flex; }
+
+.gen-modal {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px 26px;
+    width: min(480px, 92vw); max-height: 90vh; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 16px;
+    box-shadow: 0 12px 48px rgba(0,0,0,.6);
+    animation: slideIn .22s ease;
 }
-.ai-empty-title {
-    font-size: 13px; font-weight: 700; color: var(--text-primary);
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-16px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-.ai-empty-desc {
-    font-size: 11px; color: var(--text-secondary); line-height: 1.6;
+.gen-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
 }
+.gen-modal-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.gen-modal-desc  { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+.gen-field  { display: flex; flex-direction: column; gap: 6px; }
+.gen-label  { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; font-weight: 600; color: var(--text-secondary); }
+.gen-textarea {
+    width: 100%; padding: 10px 12px; resize: vertical;
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text-primary);
+    font-size: 13px; font-family: inherit; line-height: 1.5;
+    outline: none; transition: border-color var(--transition);
+}
+.gen-textarea:focus { border-color: var(--accent-secondary); }
+.gen-modal-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.gen-status {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: var(--text-secondary); padding: 4px 0;
+}
+.gen-spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid var(--border); border-top-color: var(--accent-secondary);
+    animation: spin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== AI suggestion list/intro (Adjust & Filters right panel) ===== */
+.ai-suggestion-intro {
+    font-size: 11px; color: var(--text-secondary); line-height: 1.55;
+    text-align: left; width: 100%;
+}
+.ai-suggestion-list {
+    font-size: 11px; color: var(--text-secondary); line-height: 1.7;
+    padding-left: 14px; margin: 0; width: 100%;
+}
+.ai-suggestion-list li { margin-bottom: 2px; }
+.ai-suggestion-list strong { color: var(--text-primary); }
+.ai-reasoning-list {
+    font-size: 11px; color: var(--text-secondary); line-height: 1.7;
+    padding-left: 14px; margin: 0;
+}
+.ai-reasoning-list li { margin-bottom: 2px; }
+.ai-reasoning-list strong { color: var(--text-primary); }
 

@@ -11,31 +11,44 @@ export class CropTool {
         this.endY = 0;
         this.dragging = false;
 
-        this.overlay = document.getElementById('crop-overlay');
-        this.overlayCtx = this.overlay.getContext('2d');
+        // Look up lazily in activate() in case DOM isn't ready yet
+        this.overlay = null;
+        this.overlayCtx = null;
 
         this._onMouseDown = this._onMouseDown.bind(this);
         this._onMouseMove = this._onMouseMove.bind(this);
         this._onMouseUp = this._onMouseUp.bind(this);
     }
 
+    _ensureOverlay() {
+        if (!this.overlay) {
+            this.overlay = document.getElementById('crop-overlay');
+            if (this.overlay) this.overlayCtx = this.overlay.getContext('2d');
+        }
+        return !!this.overlay;
+    }
+
     /**
      * Activate crop mode.
      */
     activate() {
+        if (!this._ensureOverlay()) { console.warn('[CropTool] crop-overlay not found'); return; }
+        if (!this.overlay) return;
         this.active = true;
         this.overlay.style.display = 'block';
         this._syncOverlaySize();
         this.overlay.addEventListener('mousedown', this._onMouseDown);
         this.overlay.addEventListener('mousemove', this._onMouseMove);
         this.overlay.addEventListener('mouseup', this._onMouseUp);
-        document.getElementById('crop-actions').style.display = 'flex';
+        const actions = document.getElementById('crop-actions-inline') || document.getElementById('crop-actions');
+        if (actions) actions.style.display = 'flex';
     }
 
     /**
      * Deactivate crop mode.
      */
     deactivate() {
+        if (!this._ensureOverlay()) return;
         this.active = false;
         this.dragging = false;
         this.overlay.style.display = 'none';
@@ -43,7 +56,8 @@ export class CropTool {
         this.overlay.removeEventListener('mousemove', this._onMouseMove);
         this.overlay.removeEventListener('mouseup', this._onMouseUp);
         this.overlayCtx.clearRect(0, 0, this.overlay.width, this.overlay.height);
-        document.getElementById('crop-actions').style.display = 'none';
+        const actions = document.getElementById('crop-actions-inline') || document.getElementById('crop-actions');
+        if (actions) actions.style.display = 'none';
     }
 
     _syncOverlaySize() {
@@ -89,6 +103,13 @@ export class CropTool {
         this.endY = coords.y;
         this.dragging = false;
         this._drawSelection();
+        // Auto-apply crop immediately if selection is large enough
+        const b = this.getBounds();
+        if (b.width > 2 && b.height > 2) {
+            if (typeof this.onSelectionMade === 'function') this.onSelectionMade();
+            // Small delay so user sees the selection flash before it's applied
+            setTimeout(() => this.applyCrop(), 120);
+        }
     }
 
     _drawSelection() {
