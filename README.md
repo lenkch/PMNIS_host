@@ -46,6 +46,3 @@ http://localhost:8081
 * Ak server nespustíš, JavaScript môže zlyhať kvôli CORS chybám
 * Server stačí spustiť iba lokálne — nie je potrebný žiadny backend
 
----
-
-Hotovo 🎉
