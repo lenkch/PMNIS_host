@@ -1212,15 +1212,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiFbClose         = document.getElementById('ai-fb-close');
     const aiFeedbackThanks  = document.getElementById('ai-feedback-thanks');
     const aiFeedbackThanksText = document.getElementById('ai-feedback-thanks-text');
+    const aiFeedbackReasonSection = document.getElementById('ai-feedback-reason-section');
+    const aiFeedbackReasonTitle = document.getElementById('ai-feedback-reason-title');
+    const aiFeedbackReasonButtons = document.getElementById('ai-feedback-reason-buttons');
 
     let aiFbAutoDismiss = null;
     let aiFbUndoSnapshot = null; // imageData to undo to
+    let aiFeedbackState = null;
+    let aiFeedbackReason = null;
+
+    const GOOD_REASONS = [
+        'Natural look',
+        'Strong improvement',
+        'Color and tone are great',
+        'Preserved detail',
+    ];
+    const BAD_REASONS = [
+        'Effect too strong',
+        'Color is off',
+        'Loss of detail',
+        'Not what I expected',
+        'Other',
+    ];
 
     const MOTIVATIONS = [
-        'Help us improve — was this good?',
-        'Your rating shapes future AI suggestions ✨',
-        'Did the AI nail it? Let us know!',
-        'Quick rating? It really helps us 💪',
+        'Your rating directly improves future edits for everyone.',
+        'This helps us tune AI in the next release.',
+        'Feedback gets better suggestions for all users.',
+        'A short response makes the system more reliable for others.',
     ];
 
     function showAiFeedback(label, undoFn) {
@@ -1228,8 +1247,10 @@ document.addEventListener('DOMContentLoaded', () => {
         aiFbUp.classList.remove('selected-up');
         aiFbDown.classList.remove('selected-down');
         aiFeedbackThanks.style.display = 'none';
-        // Hide undo by default — only shown on thumbs-down
+        aiFeedbackReasonSection.style.display = 'none';
         aiFbUndo.style.display = 'none';
+        aiFeedbackState = null;
+        aiFeedbackReason = null;
 
         aiFeedbackLabelEl.textContent = label;
         const sub = aiFeedbackToast.querySelector('.ai-feedback-sub');
@@ -1238,6 +1259,28 @@ document.addEventListener('DOMContentLoaded', () => {
         aiFeedbackToast.classList.add('visible');
         clearTimeout(aiFbAutoDismiss);
         aiFbAutoDismiss = setTimeout(() => dismissAiFeedback(false), 10000);
+    }
+
+    function renderReasonButtons(type) {
+        const options = type === 'good' ? GOOD_REASONS : BAD_REASONS;
+        aiFeedbackReasonTitle.textContent = type === 'good' ? 'What did you like most?' : 'What can we improve?';
+        aiFeedbackReasonButtons.innerHTML = options.map(option => `<button type="button" class="ai-feedback-reason-btn">${option}</button>`).join('');
+
+        aiFeedbackReasonButtons.querySelectorAll('.ai-feedback-reason-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                aiFeedbackReason = btn.textContent;
+                aiFeedbackReasonButtons.querySelectorAll('.ai-feedback-reason-btn').forEach(other => other.classList.remove('selected'));
+                btn.classList.add('selected');
+
+                aiFeedbackThanksText.textContent = type === 'good'
+                    ? `Fantastic! ${aiFeedbackReason} helps us build even better results for everyone.`
+                    : `Thanks for sharing “${aiFeedbackReason}”. This helps improve future edits across the system.`;
+                aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Your feedback will be used to improve models and workflows for all users.';
+                aiFeedbackReasonSection.style.display = 'none';
+                aiFeedbackThanks.style.display = 'block';
+                setTimeout(() => dismissAiFeedback(true), 1600);
+            });
+        });
     }
 
     function dismissAiFeedback(withThanks) {
@@ -1254,21 +1297,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     aiFbUp.addEventListener('click', () => {
+        aiFeedbackState = 'good';
         aiFbUp.classList.add('selected-up');
         aiFbDown.classList.remove('selected-down');
         aiFbUndo.style.display = 'none';
-        aiFeedbackThanksText.textContent = 'Great to hear! 🌟 Thanks for the thumbs up!';
-        dismissAiFeedback(true);
+        clearTimeout(aiFbAutoDismiss);
+
+        aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Great! Select a reason so we can improve this experience for everyone.';
+        aiFeedbackReasonSection.style.display = 'flex';
+        renderReasonButtons('good');
     });
 
     aiFbDown.addEventListener('click', () => {
+        aiFeedbackState = 'bad';
         aiFbDown.classList.add('selected-down');
         aiFbUp.classList.remove('selected-up');
-        // Reveal undo button only on thumbs-down
         aiFbUndo.style.display = '';
-        aiFeedbackThanksText.textContent = 'Noted! 🙏 We\'ll use this to improve.';
-        // Don't auto-dismiss yet — let user decide to undo or close
         clearTimeout(aiFbAutoDismiss);
+
+        aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Sorry this did not work well. Select a reason to help us improve.';
+        aiFeedbackReasonSection.style.display = 'flex';
+        renderReasonButtons('bad');
     });
 
     aiFbClose.addEventListener('click', () => {
@@ -1304,6 +1353,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resetSliders();
         clearActiveFilter();
         if (filterAiResult) filterAiResult.style.display = 'none';
+        aiFeedbackReasonSection.style.display = 'none';
         aiFeedbackThanksText.textContent = '↩️ Undone! We\'ll work on making it better.';
         dismissAiFeedback(true);
     });
