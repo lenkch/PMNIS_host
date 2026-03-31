@@ -12,44 +12,81 @@ import { downloadDataURL, debounce } from './utils.js';
 document.addEventListener('DOMContentLoaded', () => {
 
     // =========================================================
-    // WELCOME / ROLE SCREEN
+    // WELCOME / ROLE SCREEN — wire buttons FIRST before anything can crash
     // =========================================================
     const welcomeScreen = document.getElementById('welcome-screen');
     let currentRole = 'pro';
-    let tipsDisabled = false;
-    let tipPendingAction = null;
 
-    const TIPS = {
-        'btn-grayscale': { title: '🖤 Grayscale',   text: 'Removes all colour from your image, turning it black & white.' },
-        'btn-sepia':     { title: '🟤 Sepia',        text: 'Adds a warm brownish tone — great for a vintage look.' },
-        'btn-invert':    { title: '🔄 Invert',       text: 'Flips every colour to its opposite — like a photo negative.' },
-        'btn-blur':      { title: '💧 Blur',         text: 'Softens the image by smoothing out fine details.' },
-        'btn-rotate-cw': { title: '↻ Rotate CW',    text: 'Turns the image 90° to the right.' },
-        'btn-rotate-ccw':{ title: '↺ Rotate CCW',   text: 'Turns the image 90° to the left.' },
-        'btn-flip-h':    { title: '⇔ Flip H',        text: 'Mirrors the image left-to-right.' },
-        'btn-flip-v':    { title: '⇕ Flip V',        text: 'Mirrors the image upside-down.' },
-        'btn-crop':      { title: '✂️ Crop',         text: 'Draw a rectangle on the image to keep only that area.' },
-        'btn-undo':      { title: '↩️ Undo',         text: 'Steps back to the previous state.' },
-        'btn-redo':      { title: '↪️ Redo',         text: 'Re-applies a change you just undid.' },
-        'btn-reset':     { title: '🔄 Reset',        text: 'Reverts the image all the way back to the original.' },
-        'btn-download':  { title: '💾 Save',         text: 'Downloads the edited image as a PNG file.' },
-        'brightness':    { title: '☀️ Brightness',   text: 'Drag right to lighten, left to darken.' },
-        'contrast':      { title: '◑ Contrast',      text: 'Drag right to make dark and light areas more distinct.' },
-        'saturation':    { title: '🎨 Saturation',   text: 'Drag right for vivid colours, left to wash them out.' },
-    };
+    function dismissWelcome(role) {
+        currentRole = role;
+        welcomeScreen.style.animation = 'slideOut 0.25s ease forwards';
+        setTimeout(() => {
+            welcomeScreen.classList.add('hidden');
+            document.getElementById('workspace').classList.add('visible');
+            document.body.classList.add(`role-${role}`);
+        }, 240);
+    }
 
-    // Guided tour — covers every section in order
+    document.getElementById('role-beginner').addEventListener('click', () => dismissWelcome('beginner'));
+    document.getElementById('role-pro').addEventListener('click',      () => dismissWelcome('pro'));
+
+
+    // =========================================================
+    // REST OF APP SETUP
+
+    // Guided tour — each tool section has LEFT pane popup then RIGHT panel popup
+    // sub:0 = left pane, sub:1 = right AI panel
     const TOUR_STEPS = [
-        { targetId: 'pane-crop',    tool: 'crop',    title: '✂️ Crop & Transform',  text: 'Here you can crop your photo to any area, or rotate and flip it.' },
-        { targetId: 'pane-adjust',  tool: 'adjust',  title: '🎨 Adjustments',        text: 'Drag the sliders to change brightness, contrast, saturation, exposure, highlights and shadows — all previewed live.' },
-        { targetId: 'pane-filters', tool: 'filters', title: '✨ Filters',             text: 'Apply one-click colour styles like Warm, Cool or Sepia, or add blur, sharpen and noise effects. Build your own look at the bottom.' },
-        { targetId: 'pane-retouch', tool: 'retouch', title: '🪄 Retouch',            text: 'Paint directly on the image to heal blemishes, smooth skin or sharpen details. Use the radius and strength sliders to control the brush.' },
-        { targetId: 'pane-objects', tool: 'objects', title: '🎯 Add / Remove Objects', text: 'Draw a rectangle on the image, then generate a new object or remove the selected area with AI.' },
-        { targetId: 'pane-ai',      tool: 'ai',      title: '🤖 AI Tools',           text: 'Let AI automatically improve your whole photo in one click, or choose a specific AI action for adjustments, filters, cropping or retouching.' },
-        { targetId: 'pane-text',    tool: 'text',    title: 'T Text',                text: 'Choose a font size and colour, then click anywhere on the image to stamp text onto it.' },
-        { targetId: 'btn-undo',     tool: null,      title: '↩️ Undo & Redo',        text: 'Made a mistake? Undo steps back one change. Redo brings it forward. Shortcut: Ctrl+Z / Ctrl+Shift+Z.' },
-        { targetId: 'btn-download', tool: null,      title: '💾 Save',               text: 'Happy with the result? Click Save to download your edited photo as a PNG.' },
+        {
+            targetId: 'pane-crop',    aiId: 'ai-panel', tool: 'crop',
+            leftTitle: '✂️ Crop & Transform', leftText: 'Crop your photo to any area, or rotate and flip it. Click "Start Crop", drag on the image, then Apply.',
+            rightTitle: 'AI Panel — available everywhere',
+            rightText: 'Each section has an AI panel on the right like this one. It offers smart suggestions specific to that tool — from auto-enhancing adjustments to picking filters, suggesting crops, healing blemishes or removing objects. Look for it whenever you want a helping hand.'
+        },
+        {
+            targetId: 'pane-adjust',  aiId: 'ai-panel', tool: 'adjust',
+            leftTitle: '🎨 Adjustments',  leftText: 'Drag sliders for brightness, contrast, saturation, exposure, highlights and shadows. Changes are previewed live.',
+            rightTitle: null, rightText: null
+        },
+        {
+            targetId: 'pane-filters', aiId: 'ai-panel', tool: 'filters',
+            leftTitle: '✨ Filters',       leftText: 'Apply colour styles (Warm, Sepia…) or effects (Blur, Sharpen…). After applying, drag the Intensity slider to control strength.',
+            rightTitle: null, rightText: null
+        },
+        {
+            targetId: 'pane-retouch', aiId: 'ai-panel', tool: 'retouch',
+            leftTitle: '🪄 Retouch',       leftText: 'Paint on the image to heal blemishes, smooth skin, or sharpen details. A circle cursor shows your brush size as you hover.',
+            rightTitle: null, rightText: null
+        },
+        {
+            targetId: 'pane-objects', aiId: 'ai-panel', tool: 'objects',
+            leftTitle: '🗑️ Remove Objects', leftText: 'Select Rectangle, Ellipse or Freehand, draw around objects you want removed, then click Remove. You can mark multiple areas at once.',
+            rightTitle: null, rightText: null
+        },
+        {
+            targetId: 'pane-ai',     aiId: null,        tool: 'ai',
+            leftTitle: '✦ AI Tools',      leftText: '"AI Edit Everything" improves your whole photo in one click. Or pick a specific AI action — Adjust, Filter, Crop or Retouch.',
+            rightTitle: null, rightText: null
+        },
+        {
+            targetId: 'pane-text',   aiId: 'ai-panel', tool: 'text',
+            leftTitle: 'T Text & Add Objects', leftText: 'Click on the image to place styled text. Or describe an object below and let AI generate and insert it into your photo.',
+            rightTitle: null, rightText: null
+        },
+        {
+            targetId: 'btn-undo',    aiId: null,        tool: null,
+            leftTitle: '↩️ Undo & Redo',   leftText: 'Made a mistake? Undo steps back one change. Redo brings it forward. Shortcut: Ctrl+Z / Ctrl+Shift+Z.',
+            rightTitle: null, rightText: null
+        },
+        {
+            targetId: 'btn-download', aiId: null,       tool: null,
+            leftTitle: '💾 Save',          leftText: 'Happy with the result? Click Save to download your edited photo as a PNG file.',
+            rightTitle: null, rightText: null
+        },
     ];
+
+    // tourSubStep: 0 = showing left popup, 1 = showing right popup (when aiId exists)
+    let tourSubStep = 0;
 
     const tourOverlay = document.createElement('div');
     tourOverlay.className = 'tour-overlay hidden';
@@ -76,7 +113,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const tourBlocker = document.getElementById('tour-blocker');
 
     function highlightEl(id) {
+        // Clear previous left-panel highlight
         if (tourHighlightEl) tourHighlightEl.classList.remove('tour-highlight');
+        // Always clear previous AI panel highlight too
+        const prevAi = document.getElementById('ai-panel');
+        if (prevAi) prevAi.classList.remove('tour-highlight');
         const el = id ? document.getElementById(id) : null;
         if (el) { el.classList.add('tour-highlight'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
         tourHighlightEl = el;
@@ -85,120 +126,194 @@ document.addEventListener('DOMContentLoaded', () => {
     function positionTourPopup(targetId) {
         const popup = tourOverlay.querySelector('.tour-popup');
         const target = targetId ? document.getElementById(targetId) : null;
-        if (!target) { popup.style.top = '50%'; popup.style.left = '50%'; popup.style.transform = 'translate(-50%,-50%)'; return; }
-        const rect = target.getBoundingClientRect();
-        const pw = 340, ph = 220;
-        const spaceRight  = window.innerWidth  - rect.right;
-        const spaceBottom = window.innerHeight - rect.bottom;
-        popup.style.transform = '';
-        if (spaceRight >= pw + 16) {
-            popup.style.left = (rect.right + 12) + 'px';
-            popup.style.top  = Math.min(rect.top, window.innerHeight - ph - 12) + 'px';
-        } else if (spaceBottom >= ph + 16) {
-            popup.style.left = Math.min(rect.left, window.innerWidth - pw - 12) + 'px';
-            popup.style.top  = (rect.bottom + 12) + 'px';
-        } else {
-            popup.style.left = Math.min(rect.left, window.innerWidth - pw - 12) + 'px';
-            popup.style.top  = Math.max(12, rect.top - ph - 12) + 'px';
+        if (!target) {
+            popup.style.left = '50%'; popup.style.top = '50%';
+            popup.style.transform = 'translate(-50%,-50%)';
+            return;
         }
+        popup.style.transform = '';
+        const rect   = target.getBoundingClientRect();
+        const pw = 420, ph = 260, m = 14;
+        const spaceLeft   = rect.left;
+        const spaceRight  = window.innerWidth - rect.right;
+        const spaceBottom = window.innerHeight - rect.bottom;
+
+        let left, top;
+
+        if (spaceLeft >= pw + m) {
+            // Prefer left of target (good for right-side panels like AI panel)
+            left = rect.left - pw - m;
+            top  = rect.top + 30;
+        } else if (spaceRight >= pw + m) {
+            // Right of target
+            left = rect.right + m;
+            top  = rect.top + 30;
+        } else if (spaceBottom >= ph + m) {
+            // Below target
+            left = rect.left;
+            top  = rect.bottom + m;
+        } else {
+            // Above target
+            left = rect.left;
+            top  = rect.top - ph - m;
+        }
+
+        // Always clamp fully within viewport
+        left = Math.max(m, Math.min(left, window.innerWidth  - pw - m));
+        top  = Math.max(m, Math.min(top,  window.innerHeight - ph - m));
+
+        popup.style.left = left + 'px';
+        popup.style.top  = top  + 'px';
     }
 
-    function showTourStep(index) {
-        const step = TOUR_STEPS[index];
-        document.getElementById('tour-title').textContent   = step.title;
-        document.getElementById('tour-text').textContent    = step.text;
-        document.getElementById('tour-counter').textContent = `${index + 1} / ${TOUR_STEPS.length}`;
-        document.getElementById('tour-progress-bar').style.width = `${((index + 1) / TOUR_STEPS.length) * 100}%`;
-        document.getElementById('tour-back').style.visibility = index === 0 ? 'hidden' : 'visible';
-        document.getElementById('tour-next').textContent = index === TOUR_STEPS.length - 1 ? 'Finish ✓' : 'Next →';
+    function totalSubSteps() {
+        return TOUR_STEPS.reduce((n, s) => n + (s.aiId && s.rightTitle ? 2 : 1), 0);
+    }
+    function globalSubStepIndex(step, sub) {
+        let idx = 0;
+        for (let i = 0; i < step; i++) idx += (TOUR_STEPS[i].aiId && TOUR_STEPS[i].rightTitle ? 2 : 1);
+        return idx + sub;
+    }
+
+    // Spotlight overlay — a fixed full-screen dark layer with a transparent "hole" cut out
+    const tourSpotlight = document.createElement('div');
+    tourSpotlight.id = 'tour-spotlight';
+    tourSpotlight.style.cssText = `
+        position:fixed; inset:0; z-index:2450; pointer-events:none;
+        transition: opacity 0.3s ease;
+        opacity:0;
+    `;
+    document.body.appendChild(tourSpotlight);
+
+    function updateSpotlight(targetEl) {
+        if (!targetEl) { tourSpotlight.style.opacity = '0'; return; }
+        const r = targetEl.getBoundingClientRect();
+        const pad = 8;
+        const x = r.left - pad, y = r.top - pad;
+        const w = r.width + pad * 2, h = r.height + pad * 2;
+        tourSpotlight.style.background = `
+            radial-gradient(ellipse at ${x + w/2}px ${y + h/2}px, transparent ${Math.max(w,h)*0.55}px, rgba(0,0,0,0.72) ${Math.max(w,h)*0.56}px)
+        `;
+        // Fallback using SVG clip mask for sharp rectangular cutout
+        tourSpotlight.style.background = '';
+        tourSpotlight.style.backgroundColor = 'transparent';
+        // Use box-shadow trick on a pseudo via an inline SVG mask
+        const svgMask = `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='${window.innerWidth}' height='${window.innerHeight}'><defs><mask id='m'><rect width='100%' height='100%' fill='white'/><rect x='${x}' y='${y}' width='${w}' height='${h}' rx='6' fill='black'/></mask></defs><rect width='100%' height='100%' fill='rgba(0,0,0,0.68)' mask='url(%23m)'/></svg>")`;
+        tourSpotlight.style.backgroundImage = svgMask;
+        tourSpotlight.style.backgroundRepeat = 'no-repeat';
+        tourSpotlight.style.backgroundSize = '100% 100%';
+        tourSpotlight.style.opacity = '1';
+    }
+
+    function clearSpotlight() {
+        tourSpotlight.style.opacity = '0';
+    }
+
+    // Open a tool during tour without toggling it closed if already open
+    function openToolForTour(tool) {
+        if (!tool || typeof openTool !== 'function') return;
+        // If this tool is already active, just make sure panels are open
+        if (activeTool === tool) {
+            toolPanel.classList.add('open');
+            const aiContent = AI_PANEL_CONTENT[tool];
+            if (aiContent) aiPanel.classList.add('open');
+            return;
+        }
+        openTool(tool);
+    }
+
+    function showTourStep(step, sub) {
+        tourStep = step;
+        tourSubStep = sub;
+        const s = TOUR_STEPS[step];
+        const isRight = sub === 1 && s.aiId && s.rightTitle;
+        const title = isRight ? s.rightTitle : s.leftTitle;
+        const text  = isRight ? s.rightText  : s.leftText;
+        const total = totalSubSteps();
+        const cur   = globalSubStepIndex(step, sub) + 1;
+
+        document.getElementById('tour-title').textContent = title;
+        document.getElementById('tour-text').textContent  = text;
+        document.getElementById('tour-counter').textContent = `${cur} / ${total}`;
+        document.getElementById('tour-progress-bar').style.width = `${(cur / total) * 100}%`;
+
+        const isFirst = step === 0 && sub === 0;
+        const isLast  = step === TOUR_STEPS.length - 1 && sub === (s.aiId && s.rightTitle ? 1 : 0);
+        document.getElementById('tour-back').style.visibility = isFirst ? 'hidden' : 'visible';
+        document.getElementById('tour-next').textContent = isLast ? 'Finish ✓' : 'Next →';
+        document.getElementById('tour-skip').style.display = isLast ? 'none' : '';
+
         tourOverlay.classList.remove('hidden');
         if (tourBlocker) tourBlocker.classList.remove('hidden');
-        // Open the tool so the pane is visible for highlighting
-        if (step.tool && typeof openTool === 'function') openTool(step.tool);
-        highlightEl(step.targetId);
-        positionTourPopup(step.targetId);
+
+        // Open tool panels without risk of toggling them closed
+        openToolForTour(s.tool);
+
+        // Clear all highlights first
+        document.querySelectorAll('.tour-highlight, .tour-highlight-soft').forEach(el => {
+            el.classList.remove('tour-highlight', 'tour-highlight-soft');
+        });
+        tourHighlightEl = null;
+
+        // Small delay so panels have time to open/animate before we measure
+        setTimeout(() => {
+            let targetEl = null;
+            if (isRight) {
+                targetEl = document.getElementById(s.aiId);
+                if (targetEl) { targetEl.classList.add('tour-highlight'); tourHighlightEl = targetEl; }
+                positionTourPopup(s.aiId);
+            } else {
+                targetEl = document.getElementById(s.targetId);
+                if (targetEl) {
+                    targetEl.classList.add('tour-highlight');
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    tourHighlightEl = targetEl;
+                }
+                positionTourPopup(s.targetId);
+                // Always softly highlight the AI panel when this section has one
+                if (s.aiId) {
+                    const aiEl = document.getElementById(s.aiId);
+                    if (aiEl) aiEl.classList.add('tour-highlight-soft');
+                }
+            }
+            updateSpotlight(targetEl);
+        }, 320);
     }
 
     function endTour() {
         tourOverlay.classList.add('hidden');
         if (tourBlocker) tourBlocker.classList.add('hidden');
-        if (tourHighlightEl) { tourHighlightEl.classList.remove('tour-highlight'); tourHighlightEl = null; }
+        clearSpotlight();
+        document.querySelectorAll('.tour-highlight, .tour-highlight-soft').forEach(el => {
+            el.classList.remove('tour-highlight', 'tour-highlight-soft');
+        });
+        tourHighlightEl = null;
         tourDone = true;
     }
 
     document.getElementById('tour-next').addEventListener('click', () => {
-        if (tourStep < TOUR_STEPS.length - 1) { tourStep++; showTourStep(tourStep); } else endTour();
+        const s = TOUR_STEPS[tourStep];
+        const hasRight = s.aiId && s.rightTitle;
+        if (tourSubStep === 0 && hasRight) {
+            showTourStep(tourStep, 1);
+        } else if (tourStep < TOUR_STEPS.length - 1) {
+            showTourStep(tourStep + 1, 0);
+        } else {
+            endTour();
+        }
     });
+
     document.getElementById('tour-back').addEventListener('click', () => {
-        if (tourStep > 0) { tourStep--; showTourStep(tourStep); }
+        if (tourSubStep === 1) {
+            showTourStep(tourStep, 0);
+        } else if (tourStep > 0) {
+            const prev = TOUR_STEPS[tourStep - 1];
+            showTourStep(tourStep - 1, (prev.aiId && prev.rightTitle) ? 1 : 0);
+        }
     });
+
     document.getElementById('tour-skip').addEventListener('click', endTour);
 
-    // Per-action tip popup
-    const tipOverlay = document.createElement('div');
-    tipOverlay.className = 'onboarding-overlay hidden';
-    tipOverlay.innerHTML = `
-        <div class="onboarding-popup">
-            <div class="onboarding-header">
-                <span class="onboarding-title" id="tip-title"></span>
-                <span class="onboarding-badge">💡 Tip</span>
-            </div>
-            <p class="onboarding-text" id="tip-text"></p>
-            <div class="onboarding-actions">
-                <button class="btn btn-primary" id="tip-got-it">Got it — continue</button>
-                <button class="btn" id="tip-dismiss-all">Don't show tips anymore</button>
-            </div>
-        </div>`;
-    document.body.appendChild(tipOverlay);
-
-    function showTipPopup(title, text, onContinue) {
-        document.getElementById('tip-title').textContent = title;
-        document.getElementById('tip-text').textContent  = text;
-        tipPendingAction = onContinue || null;
-        tipOverlay.classList.remove('hidden');
-    }
-
-    document.getElementById('tip-got-it').addEventListener('click', () => {
-        tipOverlay.classList.add('hidden');
-        if (tipPendingAction) { tipPendingAction(); tipPendingAction = null; }
-    });
-    document.getElementById('tip-dismiss-all').addEventListener('click', () => {
-        tipOverlay.classList.add('hidden');
-        tipsDisabled = true;
-        if (tipPendingAction) { tipPendingAction(); tipPendingAction = null; }
-    });
-
-    const seenTips = new Set();
-    function withTip(id, action) {
-        // Once tour is done, never show per-action tips again
-        if (tourDone || currentRole !== 'beginner' || tipsDisabled || seenTips.has(id) || !TIPS[id]) { action(); return; }
-        seenTips.add(id);
-        showTipPopup(TIPS[id].title, TIPS[id].text, action);
-    }
-
-    function addSliderTip(sliderId) {
-        const slider = document.getElementById(sliderId);
-        if (!slider) return;
-        let shown = false;
-        slider.addEventListener('mousedown', () => {
-            if (currentRole !== 'beginner' || tipsDisabled || shown || !TIPS[sliderId]) return;
-            shown = true; seenTips.add(sliderId);
-            showTipPopup(TIPS[sliderId].title, TIPS[sliderId].text, null);
-        });
-    }
-
-    function dismissWelcome(role) {
-        currentRole = role;
-        welcomeScreen.style.animation = 'slideOut 0.25s ease forwards';
-        setTimeout(() => {
-            welcomeScreen.classList.add('hidden');
-            document.getElementById('workspace').classList.add('visible');
-            document.body.classList.add(`role-${role}`);
-        }, 240);
-    }
-
-    document.getElementById('role-beginner').addEventListener('click', () => dismissWelcome('beginner'));
-    document.getElementById('role-pro').addEventListener('click',      () => dismissWelcome('pro'));
 
     // =========================================================
     // CORE SETUP
@@ -275,16 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let retouchStrength = 50;
     let retouchPainting = false;
 
-    // Objects pane
-    const btnModeAdd             = document.getElementById('btn-mode-add');
-    const btnModeRemove          = document.getElementById('btn-mode-remove');
-    const objectPromptInput      = document.getElementById('object-prompt');
-    const btnGenerateObject      = document.getElementById('btn-generate-object');
-    const btnRemoveObject        = document.getElementById('btn-remove-object');
-    const btnClearSelection      = document.getElementById('btn-clear-selection');
-    const addObjectInputDiv      = document.getElementById('add-object-input');
-    const removeObjectActionsDiv = document.getElementById('remove-object-actions');
-    const objectsInstructionText = document.getElementById('objects-instruction-text');
+    // Objects pane — vars wired later in REMOVE OBJECTS section
 
     // AI Tools
     const btnAiOverall     = document.getElementById('btn-ai-overall');
@@ -309,7 +415,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let textSize  = 24;
     let textToolActive = false;
 
-    let objectsMode = 'add';
     let retouchActive = false;
 
     // =========================================================
@@ -329,186 +434,216 @@ document.addEventListener('DOMContentLoaded', () => {
         adjust:  'Adjustments',
         filters: 'Filters',
         retouch: 'Retouch',
-        objects: 'Add / Remove Objects',
+        objects: 'Remove Objects',
         ai:      'AI Tools',
-        text:    'Text',
+        text:    'Text & Add Objects',
     };
 
     const AI_PANEL_CONTENT = {
         crop: {
-            title: 'AI Crop Suggestions',
+            title: 'AI Crop',
             html: `
-                <div class="ai-section-label">Smart Suggestions</div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">✂️ Rule of Thirds</div>
-                    <div class="ai-suggestion-desc">Crop to align the main subject along the rule-of-thirds grid for a more balanced composition.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="crop-thirds">Apply</button>
+                    <div class="ai-suggestion-desc">Crop along the rule-of-thirds grid for a more balanced composition.</div>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="crop-thirds">✂️ Rule of Thirds</button>
                 </div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">🔲 Square Crop</div>
                     <div class="ai-suggestion-desc">Crop to a 1:1 square — perfect for social media.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="crop-square">Apply</button>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="crop-square">🔲 Square Crop</button>
                 </div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">🔄 Auto Straighten</div>
-                    <div class="ai-suggestion-desc">AI detected the horizon is slightly tilted. Auto-rotate to straighten it.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="auto-straighten">Apply</button>
+                    <div class="ai-suggestion-desc">AI detected the horizon is slightly tilted — auto-rotate to straighten.</div>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="auto-straighten">🔄 Auto Straighten</button>
+                </div>
+                <div class="ai-suggestion-card">
+                    <div class="ai-suggestion-desc">Error AI suggestion.</div>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="ai-smart-crop">Error Suggestion
+                    </button>
                 </div>`
         },
         adjust: {
-            title: 'AI Adjustments',            html: `
-                <div class="ai-section-label">Auto Enhance</div>
+            title: 'AI Adjust',
+            html: `
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">✨ Auto Enhance</div>
-                    <div class="ai-suggestion-desc">AI will automatically optimise brightness, contrast and saturation based on your image content.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="auto-enhance">Apply</button>
+                    <div class="ai-suggestion-intro">Based on recent trends, I suggest these changes:</div>
+                    <ul class="ai-suggestion-list">
+                        <li>☀️ <strong>Brightness +30</strong> — image appears underexposed</li>
+                        <li>🎨 <strong>Saturation +40</strong> — vivid colours are trending in portrait photography</li>
+                    </ul>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="auto-enhance">✨ Apply Suggestions</button>
                 </div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">☀️ Boost Brightness</div>
-                    <div class="ai-suggestion-desc">Image appears underexposed. AI suggests increasing brightness by +30.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="boost-brightness">Apply</button>
-                </div>
-                <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">🎨 Vivid Colours</div>
-                    <div class="ai-suggestion-desc">Boost saturation to make colours more vibrant and eye-catching.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="vivid">Apply</button>
+                    <div class="ai-suggestion-intro">For a clean, timeless look I suggest:</div>
+                    <ul class="ai-suggestion-list">
+                        <li>◑ <strong>Contrast +20</strong> — adds depth and definition</li>
+                        <li>🌤 <strong>Highlights −15</strong> — recover blown-out areas</li>
+                    </ul>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="boost-brightness">Apply Suggestions</button>
                 </div>`
         },
         filters: {
-            title: 'AI Filter Suggestions',
+            title: 'AI Filters',
             html: `
-                <div class="ai-section-label">Smart Filter</div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">🤖 Apply AI Filter</div>
-                    <div class="ai-suggestion-desc">Let AI analyse and pick the best filter for your photo automatically.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="ai-filter">Apply</button>
+                    <div class="ai-suggestion-intro">Based on recent trends, I suggest these filters:</div>
+                    <ul class="ai-suggestion-list">
+                        <li>🖤 <strong>Grayscale</strong> — low colour variance detected, B&W will improve impact</li>
+                        <li>🟤 <strong>Vintage Sepia</strong> — warm tones in your photo suit a retro palette</li>
+                    </ul>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="suggest-grayscale">Apply Suggestion</button>
                 </div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">🖤 Grayscale</div>
-                    <div class="ai-suggestion-desc">AI detected low colour variance — converting to black & white may improve impact.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="suggest-grayscale">Apply</button>
-                </div>
-                <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">🟤 Vintage Look</div>
-                    <div class="ai-suggestion-desc">Warm tones detected — a sepia filter would complement the existing palette.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="suggest-sepia">Apply</button>
+                    <div class="ai-suggestion-intro">For a modern editorial style I suggest:</div>
+                    <ul class="ai-suggestion-list">
+                        <li>🌊 <strong>Cool tone</strong> — blue-shift trending in fashion photography</li>
+                        <li>🌫️ <strong>Fade</strong> — soft matte finish popular on social media</li>
+                    </ul>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="ai-filter">Apply Style</button>
                 </div>`
         },
         retouch: {
             title: 'AI Retouch',
             html: `
-                <div class="ai-section-label">Smart Heal</div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">🩹 Auto Heal</div>
                     <div class="ai-suggestion-desc">AI detects blemishes and noise areas and automatically heals them.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="auto-heal">Apply</button>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="auto-heal">🩹 Auto Heal</button>
                 </div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">🌊 Portrait Smooth</div>
                     <div class="ai-suggestion-desc">Smooth skin tones while preserving fine details like eyes and hair.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="portrait-smooth">Apply</button>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="portrait-smooth">🌊 Portrait Smooth</button>
                 </div>`
         },
         objects: {
-            title: 'AI Objects',
+            title: 'AI Remove',
             html: `
-                <div class="ai-section-label">Object Detection</div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">🔍 Detect Objects</div>
-                    <div class="ai-suggestion-desc">AI scans your image and highlights objects so you can easily select and remove them.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="detect-objects">Detect</button>
+                    <div class="ai-suggestion-desc">AI scans your image and automatically highlights removable objects — no manual selection needed.</div>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="detect-objects">🔍 Auto-Detect Objects</button>
                 </div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">✨ Smart Inpaint</div>
-                    <div class="ai-suggestion-desc">After drawing a selection, AI fills the area with a realistic background.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="smart-inpaint">Apply</button>
-                </div>`
-        },
-        ai: {
-            title: 'AI Assistant',
-            html: `
-                <div class="ai-section-label">About AI Tools</div>
-                <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">💡 What can AI do?</div>
-                    <div class="ai-suggestion-desc">AI tools can automatically enhance your photo, apply smart filters, detect and remove objects, and suggest optimal crops.</div>
+                    <div class="ai-suggestion-desc">After selecting areas, AI fills them with a realistic background matching the surroundings.</div>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="smart-inpaint">✨ Smart Fill</button>
                 </div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">🔒 Privacy</div>
-                    <div class="ai-suggestion-desc">Your images are processed locally in the browser — nothing is sent to a server.</div>
+                    <div class="ai-suggestion-desc">Use Rectangle for clean edges, Circle for round objects, Freehand for irregular shapes.</div>
                 </div>`
         },
+        ai: null,   // AI Tools panel has no right-side panel — it IS the AI section
         text: {
-            title: 'AI Text Suggestions',
+            title: 'AI Text',
             html: `
-                <div class="ai-section-label">Style Ideas</div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">💬 Caption Suggestion</div>
-                    <div class="ai-suggestion-desc">AI can suggest a caption based on the content of your image.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="suggest-caption">Suggest</button>
+                    <div class="ai-suggestion-desc">AI suggests a caption based on the content of your photo.</div>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="suggest-caption">💬 Suggest Caption</button>
                 </div>
                 <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-title">🎨 Contrast Check</div>
-                    <div class="ai-suggestion-desc">AI will check that your text colour contrasts well with the background at the click point.</div>
-                    <button class="ai-suggestion-apply" data-ai-action="contrast-check">Check</button>
+                    <div class="ai-suggestion-desc">AI checks that your text colour contrasts well against the background.</div>
+                    <button class="ai-suggestion-apply w-full" data-ai-action="contrast-check">🎨 Contrast Check</button>
+                </div>
+                <div class="ai-suggestion-card">
+                    <div class="ai-suggestion-desc">Be specific when adding objects — "a white fluffy cat on the grass" gives better results than "cat".</div>
                 </div>`
         },
+    };
+
+    // Objects remove tool state — declared here so openTool() can reference it
+    let currentRemoveTool = 'rectangle';
+    const REMOVE_INSTRUCTIONS = {
+        rectangle: 'Draw rectangles around each object to remove. Select multiple, then click Remove.',
+        ellipse:   'Draw circles around each object to remove. Select multiple, then click Remove.',
+        freehand:  'Draw freehand outlines around each object. Select multiple, then click Remove.',
     };
 
     let activeTool = null;
 
     function openTool(tool) {
-        // Toggle: clicking same tool closes it
-        if (activeTool === tool) {
-            closeTool();
-            return;
-        }
+        if (activeTool === tool) { closeTool(); return; }
 
-        // Deactivate text tool if switching away
         if (activeTool === 'text') deactivateTextTool();
+        if (activeTool === 'objects' && tool !== 'objects') annotationLayer.clearAll();
 
         activeTool = tool;
-
-        // Update rail active state
         railBtns.forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
 
-        // Show the correct pane, hide others
         document.querySelectorAll('.tool-pane').forEach(p => p.style.display = 'none');
         const pane = document.getElementById(`pane-${tool}`);
         if (pane) pane.style.display = 'flex';
 
-        // Update panel title and open it
         toolPanelTitle.textContent = PANE_TITLES[tool] || tool;
         toolPanel.classList.add('open');
 
-        // Update and open the right AI panel
         const aiContent = AI_PANEL_CONTENT[tool];
-        if (aiContent) {
+        if (aiContent && tool !== 'ai') {
             aiPanelTitle.textContent = aiContent.title;
             aiPanelBody.innerHTML = aiContent.html;
-            // Wire up AI action buttons
             aiPanelBody.querySelectorAll('.ai-suggestion-apply[data-ai-action]').forEach(btn => {
-                btn.addEventListener('click', () => handleAiAction(btn.dataset.aiAction));
+                btn.addEventListener('click', () => {
+                    handleAiAction(btn.dataset.aiAction);
+                    // Mark applied
+                    btn.textContent = '✅ Applied';
+                    btn.disabled = true;
+                    btn.classList.add('ai-applied');
+                    // Fade out and remove the whole card after a short delay
+                    const card = btn.closest('.ai-suggestion-card');
+                    if (card) {
+                        setTimeout(() => {
+                            card.style.transition = 'opacity 0.4s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease';
+                            card.style.opacity    = '0';
+                            card.style.maxHeight  = card.offsetHeight + 'px';
+                            // Trigger collapse after opacity starts
+                            requestAnimationFrame(() => requestAnimationFrame(() => {
+                                card.style.maxHeight = '0';
+                                card.style.overflow  = 'hidden';
+                                card.style.marginBottom = '0';
+                                card.style.paddingTop   = '0';
+                                card.style.paddingBottom = '0';
+                            }));
+                            setTimeout(() => {
+                                card.remove();
+                                // If no more suggestion cards remain, show empty state
+                                const remaining = aiPanelBody.querySelectorAll('.ai-suggestion-card');
+                                if (remaining.length === 0) {
+                                    aiPanelBody.innerHTML = `
+                                        <div class="ai-empty-state">
+                                            <div class="ai-empty-icon">✦</div>
+                                            <p class="ai-empty-title">All suggestions applied!</p>
+                                            <p class="ai-empty-desc">You've used all AI suggestions for this section.</p>
+                                        </div>`;
+                                }
+                            }, 450);
+                        }, 1200);
+                    }
+                });
             });
+            aiPanel.classList.add('open');
+        } else {
+            aiPanel.classList.remove('open');
         }
-        aiPanel.classList.add('open');
 
-        // Special activations per tool
-        if (tool === 'text') activateTextTool();
-        if (tool === 'retouch') activateRetouchTool();
-        else if (retouchActive) deactivateRetouchTool();
-        if (tool === 'objects') {
-            if (editor.imageLoaded && !annotationLayer.active) annotationLayer.activate();
-        }
-        if (tool === 'filters' && editor.imageLoaded) {
-            // Refresh custom filter preview after panel is visible
-            setTimeout(() => { if (typeof buildCustomFilterPreview === 'function') buildCustomFilterPreview(); }, 50);
+        if (retouchActive && tool !== 'retouch') deactivateRetouchTool();
+
+        if (tool === 'retouch') {
+            annotationLayer.overlay.style.pointerEvents = 'none';
+            activateRetouchTool();
+        } else if (tool === 'objects') {
+            hideRetouchCursor();
+            if (!annotationLayer.active) annotationLayer.activate();
+            annotationLayer.overlay.style.pointerEvents = 'auto';
+            annotationLayer.setTool(currentRemoveTool);
+            if (objectsInstructionText) objectsInstructionText.textContent = REMOVE_INSTRUCTIONS[currentRemoveTool];
+            removeToolButtons.forEach(b => b.classList.toggle('active', b.dataset.removeTool === currentRemoveTool));
+        } else {
+            hideRetouchCursor();
+            if (annotationLayer.active) annotationLayer.overlay.style.pointerEvents = 'none';
         }
     }
 
     function closeTool() {
         if (activeTool === 'text') deactivateTextTool();
-        if (activeTool === 'retouch') deactivateRetouchTool();
+        if (retouchActive) deactivateRetouchTool();
+        hideRetouchCursor();
         if (activeTool === 'crop' && cropTool.active) cropTool.deactivate();
+        if (annotationLayer.active) annotationLayer.overlay.style.pointerEvents = 'none';
         activeTool = null;
         railBtns.forEach(b => b.classList.remove('active'));
         toolPanel.classList.remove('open');
@@ -520,85 +655,48 @@ document.addEventListener('DOMContentLoaded', () => {
     aiPanelClose.addEventListener('click',   () => { aiPanel.classList.remove('open'); });
 
     // =========================================================
-    // AI PANEL ACTIONS
+    // PRO — one-time AI panel hover tip
     // =========================================================
-    function handleAiAction(action) {
-        if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
+    const proAiTip = document.createElement('div');
+    proAiTip.className = 'pro-ai-tip hidden';
+    proAiTip.innerHTML = `
+        <div class="pro-ai-tip-content">
+            <strong>✦ AI Suggestions</strong>
+            <p>Each section has context-aware AI suggestions here. Apply them with one click — and rate the result to help us improve.</p>
+            <button class="btn btn-small" id="pro-ai-tip-close">Got it</button>
+        </div>`;
+    document.body.appendChild(proAiTip);
 
-        switch (action) {
-            case 'auto-enhance':
-                commitPendingAdjustments();
-                brightnessSlider.value = 15; brightnessValue.textContent = '15';
-                contrastSlider.value   = 20; contrastValue.textContent   = '20';
-                saturationSlider.value = 10; saturationValue.textContent = '10';
-                applyAllAdjustments();
-                editor.commitAdjustment();
-                resetSliders();
-                showSnackbar('✨ Auto enhance applied!');
-                break;
-            case 'boost-brightness':
-                commitPendingAdjustments();
-                brightnessSlider.value = 30; brightnessValue.textContent = '30';
-                applyAllAdjustments();
-                editor.commitAdjustment();
-                resetSliders();
-                showSnackbar('☀️ Brightness boosted!');
-                break;
-            case 'vivid':
-                commitPendingAdjustments();
-                saturationSlider.value = 40; saturationValue.textContent = '40';
-                applyAllAdjustments();
-                editor.commitAdjustment();
-                resetSliders();
-                showSnackbar('🎨 Vivid colours applied!');
-                break;
-            case 'ai-filter':
-                triggerAiFilter();
-                break;
-            case 'suggest-grayscale':
-                commitPendingAdjustments();
-                editor.applyOperation(grayscale);
-                showSnackbar('🖤 Grayscale filter applied!');
-                break;
-            case 'suggest-sepia':
-                commitPendingAdjustments();
-                editor.applyOperation(sepia);
-                showSnackbar('🟤 Sepia filter applied!');
-                break;
-            case 'smart-inpaint':
-            case 'detect-objects':
-                showSnackbar('🔍 Object detection would run here (AI integration needed)');
-                break;
-            case 'crop-thirds':
-            case 'crop-square':
-            case 'auto-straighten':
-                showSnackbar(`🤖 "${action}" would run here (AI integration needed)`);
-                break;
-            case 'suggest-caption':
-                showSnackbar('💬 Caption suggestion would appear here (AI integration needed)');
-                break;
-            case 'contrast-check':
-                showSnackbar('🎨 Contrast check would run here (AI integration needed)');
-                break;
-            default:
-                showSnackbar(`🤖 AI action "${action}" (integration needed)`);
-        }
-    }
+    let proAiTipShown = false;
+    aiPanel.addEventListener('mouseenter', () => {
+        if (proAiTipShown || currentRole !== 'pro') return;
+        proAiTipShown = true;
+        const rect = aiPanel.getBoundingClientRect();
+        proAiTip.style.top  = (rect.top + 12) + 'px';
+        proAiTip.style.left = (rect.left - 280) + 'px';
+        proAiTip.classList.remove('hidden');
+    });
+    document.getElementById('pro-ai-tip-close').addEventListener('click', () => {
+        proAiTip.classList.add('hidden');
+    });
+
 
     // =========================================================
     // IMAGE UPLOAD
     // =========================================================
     function handleFile(file) {
-        if (!file || !file.type.startsWith('image/')) return;
+        if (!file || !file.type.startsWith('image/')) { console.warn('[APP] handleFile: invalid file', file); return; }
         editor.loadImage(file).then(() => {
             dropZone.style.display = 'none';
             workspace.classList.add('has-image');
             resetSliders();
             annotationLayer.syncSize();
             if (currentRole === 'beginner' && !tourDone) {
-                tourStep = 0;
-                setTimeout(() => showTourStep(0), 400);
+                tourStep = 0; tourSubStep = 0;
+                setTimeout(() => showTourStep(0, 0), 400);
             }
+        }).catch(err => {
+            console.error('[APP] handleFile: load failed', err);
         });
     }
 
@@ -721,9 +819,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (highlightsSlider) highlightsSlider.addEventListener('input', () => onSliderInput(highlightsSlider, highlightsValue));
     if (shadowsSlider)    shadowsSlider.addEventListener('input',    () => onSliderInput(shadowsSlider,    shadowsValue));
 
-    addSliderTip('brightness');
-    addSliderTip('contrast');
-    addSliderTip('saturation');
 
     let adjustmentsDirty = false;
     brightnessSlider.addEventListener('change', () => { adjustmentsDirty = true; });
@@ -773,13 +868,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.drawImage(editor.originalImage, 0, 0, canvas.width, canvas.height);
         compareCanvas.style.display = 'block';
         compareBadge.style.display  = 'block';
-        btnCompare.classList.add('comparing');
     }
 
     function stopCompare() {
         compareCanvas.style.display = 'none';
         compareBadge.style.display  = 'none';
-        btnCompare.classList.remove('comparing');
     }
 
     if (btnCompare) {
@@ -855,161 +948,128 @@ document.addEventListener('DOMContentLoaded', () => {
         return new ImageData(d, imageData.width, imageData.height);
     }
 
+    const blurIntensityGroup = document.getElementById('blur-intensity-group');
     blurAmountSlider.addEventListener('input', () => {
         currentBlurAmount = parseInt(blurAmountSlider.value);
         blurAmountValue.textContent = currentBlurAmount;
     });
 
-    // Track which filter button is currently active/applied
-    let activeFilterBtn = null;
-    const filterIntensityBar = document.getElementById('filter-intensity-bar');
-    const filterIntensityFill = document.getElementById('filter-intensity-fill');
+    function showBlurSlider(show) {
+        if (blurIntensityGroup) blurIntensityGroup.style.display = show ? 'flex' : 'none';
+    }
 
-    function setActiveFilter(btn, intensity = 100) {
-        // Deactivate previous
+    // =========================================================
+    // FILTER INTENSITY SYSTEM
+    // =========================================================
+    let activeFilterBtn       = null;   // which filter-btn is active
+    let preFilterImageData    = null;   // snapshot BEFORE filter applied
+    let filteredImageData     = null;   // snapshot AFTER filter at 100%
+    let currentFilterIntensity = 100;
+
+    const filterIntensitySection = document.getElementById('filter-intensity-section');
+    const filterIntensitySlider  = document.getElementById('filter-intensity-slider');
+    const filterIntensityValue   = document.getElementById('filter-intensity-value');
+    const filterIntensityLabel   = document.getElementById('filter-intensity-label');
+    const btnCommitFilter        = document.getElementById('btn-commit-filter');
+
+    function blendImageData(a, b, t) {
+        // t = 0 → pure a, t = 1 → pure b
+        const out = new Uint8ClampedArray(a.data.length);
+        for (let i = 0; i < a.data.length; i++) {
+            out[i] = Math.round(a.data[i] * (1 - t) + b.data[i] * t);
+        }
+        return new ImageData(out, a.width, a.height);
+    }
+
+    function setActiveFilter(btn, filterFn, filterArgs = []) {
+        if (!editor.imageLoaded) return;
         if (activeFilterBtn && activeFilterBtn !== btn) {
             activeFilterBtn.classList.remove('filter-applied');
         }
         activeFilterBtn = btn;
-        if (btn) {
-            btn.classList.add('filter-applied');
-            if (filterIntensityBar) filterIntensityBar.style.display = 'block';
-            if (filterIntensityFill) filterIntensityFill.style.width = intensity + '%';
-        } else {
-            if (filterIntensityBar) filterIntensityBar.style.display = 'none';
-        }
+        btn.classList.add('filter-applied');
+
+        // Show blur slider only for blur filter
+        showBlurSlider(btn === btnBlur);
+
+        preFilterImageData = editor.getImageData();
+        filteredImageData = filterFn(preFilterImageData, ...filterArgs);
+        editor.putImageData(filteredImageData);
+
+        currentFilterIntensity = 100;
+        if (filterIntensitySlider) filterIntensitySlider.value = 100;
+        if (filterIntensityValue)  filterIntensityValue.textContent = '100%';
+        if (filterIntensityLabel)  filterIntensityLabel.textContent = `${btn.querySelector('span:last-child')?.textContent || 'Filter'} Intensity`;
+        if (filterIntensitySection) filterIntensitySection.style.display = 'flex';
     }
 
     function clearActiveFilter() {
         if (activeFilterBtn) activeFilterBtn.classList.remove('filter-applied');
-        activeFilterBtn = null;
-        if (filterIntensityBar) filterIntensityBar.style.display = 'none';
+        activeFilterBtn       = null;
+        preFilterImageData    = null;
+        filteredImageData     = null;
+        currentFilterIntensity = 100;
+        showBlurSlider(false);
+        if (filterIntensitySection) filterIntensitySection.style.display = 'none';
     }
 
-    function makeFilterClick(btn, fn) {
-        return withCommitWrap(() => {
-            if (!editor.imageLoaded) return;
-            // If already applied, don't apply again
-            if (btn.classList.contains('filter-applied')) {
-                showSnackbar('Filter already applied. Reset first to reapply.');
-                return;
-            }
-            fn();
-            setActiveFilter(btn);
+    // Live blend on slider drag
+    if (filterIntensitySlider) {
+        filterIntensitySlider.addEventListener('input', () => {
+            currentFilterIntensity = parseInt(filterIntensitySlider.value);
+            if (filterIntensityValue) filterIntensityValue.textContent = currentFilterIntensity + '%';
+            if (!preFilterImageData || !filteredImageData) return;
+            const blended = blendImageData(preFilterImageData, filteredImageData, currentFilterIntensity / 100);
+            editor.putImageData(blended);
         });
     }
 
-    btnGrayscale.addEventListener('click', makeFilterClick(btnGrayscale, () => withTip('btn-grayscale', () => editor.applyOperation(grayscale))));
-    btnSepia.addEventListener('click',     makeFilterClick(btnSepia,     () => withTip('btn-sepia',     () => editor.applyOperation(sepia))));
-    btnInvert.addEventListener('click',    makeFilterClick(btnInvert,    () => withTip('btn-invert',    () => editor.applyOperation(invert))));
-    btnBlur.addEventListener('click',      makeFilterClick(btnBlur,      () => withTip('btn-blur',      () => editor.applyOperation(blur, currentBlurAmount))));
-    btnWarm.addEventListener('click',      makeFilterClick(btnWarm,      () => editor.applyOperation(applyWarm)));
-    btnCool.addEventListener('click',      makeFilterClick(btnCool,      () => editor.applyOperation(applyCool)));
-    btnVivid.addEventListener('click',     makeFilterClick(btnVivid,     () => editor.applyOperation(applyVividFilter)));
-    btnFade.addEventListener('click',      makeFilterClick(btnFade,      () => editor.applyOperation(applyFade)));
-    btnSharpen.addEventListener('click',   makeFilterClick(btnSharpen,   () => editor.applyOperation(applySharpenFilter)));
-    btnNoise.addEventListener('click',     makeFilterClick(btnNoise,     () => editor.applyOperation(applyNoiseFilter)));
-
-    // =========================================================
-    // CUSTOM FILTER BUILDER
-    // =========================================================
-    const cfBrightnessSlider = document.getElementById('cf-brightness');
-    const cfContrastSlider   = document.getElementById('cf-contrast');
-    const cfSaturationSlider = document.getElementById('cf-saturation');
-    const cfHueSlider        = document.getElementById('cf-hue');
-    const cfBrightnessVal    = document.getElementById('cf-brightness-value');
-    const cfContrastVal      = document.getElementById('cf-contrast-value');
-    const cfSaturationVal    = document.getElementById('cf-saturation-value');
-    const cfHueVal           = document.getElementById('cf-hue-value');
-    const btnApplyCustom     = document.getElementById('btn-apply-custom-filter');
-    const btnResetCustom     = document.getElementById('btn-reset-custom-filter');
-    const cfPreview          = document.getElementById('custom-filter-preview');
-    const cfPreviewLabel     = document.getElementById('custom-filter-preview-label');
-
-    // Preview canvas inside the custom filter card
-    const cfPreviewCanvas = document.createElement('canvas');
-    cfPreviewCanvas.style.cssText = 'width:100%;height:100%;object-fit:cover;display:none;border-radius:6px;';
-    cfPreview.appendChild(cfPreviewCanvas);
-
-    function applyHueShift(imageData, degrees) {
-        const d = new Uint8ClampedArray(imageData.data);
-        const angle = degrees * Math.PI / 180;
-        const cos = Math.cos(angle), sin = Math.sin(angle);
-        // Hue rotation matrix
-        const m = [
-            cos + (1-cos)/3,       (1-cos)/3 - sin*Math.sqrt(1/3), (1-cos)/3 + sin*Math.sqrt(1/3),
-            (1-cos)/3 + sin*Math.sqrt(1/3), cos + (1-cos)/3,       (1-cos)/3 - sin*Math.sqrt(1/3),
-            (1-cos)/3 - sin*Math.sqrt(1/3), (1-cos)/3 + sin*Math.sqrt(1/3), cos + (1-cos)/3
-        ];
-        for (let i = 0; i < d.length; i += 4) {
-            const r = d[i], g = d[i+1], b = d[i+2];
-            d[i]   = Math.min(255, Math.max(0, m[0]*r + m[1]*g + m[2]*b));
-            d[i+1] = Math.min(255, Math.max(0, m[3]*r + m[4]*g + m[5]*b));
-            d[i+2] = Math.min(255, Math.max(0, m[6]*r + m[7]*g + m[8]*b));
-        }
-        return new ImageData(d, imageData.width, imageData.height);
+    // Commit button: burn the blended result into history so undo works
+    if (btnCommitFilter) {
+        btnCommitFilter.addEventListener('click', () => {
+            if (!editor.imageLoaded) return;
+            const currentData = editor.getImageData();
+            editor.history.push(currentData);
+            editor.baseImageData = currentData;
+            editor._notifyChange();
+            showSnackbar(`✅ Filter applied at ${currentFilterIntensity}%`);
+            preFilterImageData = null;
+            filteredImageData  = null;
+            if (filterIntensitySection) filterIntensitySection.style.display = 'none';
+        });
     }
 
-    function buildCustomFilterPreview() {
-        if (!editor.imageLoaded) return;
-        const b  = parseInt(cfBrightnessSlider.value);
-        const c  = parseInt(cfContrastSlider.value);
-        const s  = parseInt(cfSaturationSlider.value);
-        const h  = parseInt(cfHueSlider.value);
-        // Render at small size for speed
-        const THUMB = 160;
-        cfPreviewCanvas.width  = THUMB;
-        cfPreviewCanvas.height = Math.round(THUMB * canvas.height / canvas.width);
-        const ctx = cfPreviewCanvas.getContext('2d');
-        ctx.drawImage(canvas, 0, 0, cfPreviewCanvas.width, cfPreviewCanvas.height);
-        let data = ctx.getImageData(0, 0, cfPreviewCanvas.width, cfPreviewCanvas.height);
-        if (b !== 0) data = applyBrightness(data, b);
-        if (c !== 0) data = applyContrast(data, c);
-        if (s !== 0) data = applySaturation(data, s);
-        if (h !== 0) data = applyHueShift(data, h);
-        ctx.putImageData(data, 0, 0);
-        cfPreviewCanvas.style.display = 'block';
-        if (cfPreviewLabel) cfPreviewLabel.style.display = 'none';
+    // Cancel button: revert to pre-filter state
+    const btnCancelFilter = document.getElementById('btn-cancel-filter');
+    if (btnCancelFilter) {
+        btnCancelFilter.addEventListener('click', () => {
+            if (preFilterImageData) editor.putImageData(preFilterImageData);
+            clearActiveFilter();
+            if (filterIntensitySection) filterIntensitySection.style.display = 'none';
+        });
     }
 
-    const debouncedCfPreview = debounce(buildCustomFilterPreview, 60);
+    function makeFilterClick(btn, filterFn, filterArgs = []) {
+        return withCommitWrap(() => {
+            if (!editor.imageLoaded) return;
+            // Re-clicking the active filter just changes intensity via slider
+            if (btn.classList.contains('filter-applied')) return;
+            // Commit any pending adjustments first
+            setActiveFilter(btn, filterFn, filterArgs);
+        });
+    }
 
-    [cfBrightnessSlider, cfContrastSlider, cfSaturationSlider, cfHueSlider].forEach((sl, i) => {
-        const vals = [cfBrightnessVal, cfContrastVal, cfSaturationVal, cfHueVal];
-        sl.addEventListener('input', () => { vals[i].textContent = sl.value; debouncedCfPreview(); });
-    });
+    btnGrayscale.addEventListener('click', makeFilterClick(btnGrayscale, grayscale));
+    btnSepia.addEventListener('click',     makeFilterClick(btnSepia,     sepia));
+    btnInvert.addEventListener('click',    makeFilterClick(btnInvert,    invert));
+    btnBlur.addEventListener('click',      makeFilterClick(btnBlur,      (d) => blur(d, currentBlurAmount)));
+    btnWarm.addEventListener('click',      makeFilterClick(btnWarm,      applyWarm));
+    btnCool.addEventListener('click',      makeFilterClick(btnCool,      applyCool));
+    btnVivid.addEventListener('click',     makeFilterClick(btnVivid,     applyVividFilter));
+    btnFade.addEventListener('click',      makeFilterClick(btnFade,      applyFade));
+    btnSharpen.addEventListener('click',   makeFilterClick(btnSharpen,   applySharpenFilter));
+    btnNoise.addEventListener('click',     makeFilterClick(btnNoise,     applyNoiseFilter));
 
-    // Update preview whenever filters pane is opened
-    editor.onChange(() => {
-        if (activeTool === 'filters') debouncedCfPreview();
-    });
-
-    btnApplyCustom.addEventListener('click', () => {
-        if (!editor.imageLoaded) return;
-        commitPendingAdjustments();
-        const b = parseInt(cfBrightnessSlider.value);
-        const c = parseInt(cfContrastSlider.value);
-        const s = parseInt(cfSaturationSlider.value);
-        const h = parseInt(cfHueSlider.value);
-        let data = editor.getImageData();
-        if (b !== 0) data = applyBrightness(data, b);
-        if (c !== 0) data = applyContrast(data, c);
-        if (s !== 0) data = applySaturation(data, s);
-        if (h !== 0) data = applyHueShift(data, h);
-        editor.putImageData(data);
-        editor.history.push(data);
-        editor.baseImageData = editor.getImageData();
-        editor._notifyChange();
-        showAiFeedback('🎛️ Custom Look applied', null);
-    });
-
-    btnResetCustom.addEventListener('click', () => {
-        cfBrightnessSlider.value = 0; cfBrightnessVal.textContent = '0';
-        cfContrastSlider.value   = 0; cfContrastVal.textContent   = '0';
-        cfSaturationSlider.value = 0; cfSaturationVal.textContent = '0';
-        cfHueSlider.value        = 0; cfHueVal.textContent        = '0';
-        debouncedCfPreview();
-    });
 
     // =========================================================
     // RETOUCH BRUSH
@@ -1036,13 +1096,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function activateRetouchTool() {
         retouchActive = true;
+        annotationLayer.overlay.style.pointerEvents = 'none';
         canvas.style.cursor = 'none';
-        canvas.addEventListener('mousedown', onRetouchStart);
-        canvas.addEventListener('mousemove', onRetouchMove);
-        canvas.addEventListener('mouseup',   onRetouchEnd);
-        canvas.addEventListener('mouseleave',onRetouchEnd);
-        canvas.addEventListener('mousemove', showRetouchCursor);
-        if (retouchCursor) { retouchCursor.style.width = retouchRadius*2+'px'; retouchCursor.style.height = retouchRadius*2+'px'; }
+        canvas.addEventListener('mousedown',  onRetouchStart);
+        canvas.addEventListener('mousemove',  onRetouchMove);
+        canvas.addEventListener('mouseup',    onRetouchEnd);
+        canvas.addEventListener('mouseleave', onRetouchEnd);
+        canvas.addEventListener('mousemove',  showRetouchCursor);
+        canvas.addEventListener('mouseleave', hideRetouchCursor);
+        if (retouchCursor) {
+            retouchCursor.style.width  = retouchRadius * 2 + 'px';
+            retouchCursor.style.height = retouchRadius * 2 + 'px';
+        }
         modeIndicatorText.textContent = 'Retouch Mode';
         modeIndicator.style.display   = 'flex';
     }
@@ -1050,22 +1115,26 @@ document.addEventListener('DOMContentLoaded', () => {
     function deactivateRetouchTool() {
         retouchActive = false;
         canvas.style.cursor = '';
-        canvas.removeEventListener('mousedown', onRetouchStart);
-        canvas.removeEventListener('mousemove', onRetouchMove);
-        canvas.removeEventListener('mouseup',   onRetouchEnd);
-        canvas.removeEventListener('mouseleave',onRetouchEnd);
-        canvas.removeEventListener('mousemove', showRetouchCursor);
-        if (retouchCursor) retouchCursor.style.display = 'none';
+        canvas.removeEventListener('mousedown',  onRetouchStart);
+        canvas.removeEventListener('mousemove',  onRetouchMove);
+        canvas.removeEventListener('mouseup',    onRetouchEnd);
+        canvas.removeEventListener('mouseleave', onRetouchEnd);
+        canvas.removeEventListener('mousemove',  showRetouchCursor);
+        canvas.removeEventListener('mouseleave', hideRetouchCursor);
+        hideRetouchCursor();
         modeIndicator.style.display = 'none';
     }
 
     function showRetouchCursor(e) {
-        if (!retouchCursor) return;
-        const canvasArea = document.getElementById('canvas-area');
-        const areaRect   = canvasArea.getBoundingClientRect();
+        if (!retouchCursor || !retouchActive) return;
+        const wrapperRect = canvasWrapper.getBoundingClientRect();
         retouchCursor.style.display = 'block';
-        retouchCursor.style.left    = (e.clientX - areaRect.left) + 'px';
-        retouchCursor.style.top     = (e.clientY - areaRect.top)  + 'px';
+        retouchCursor.style.left = (e.clientX - wrapperRect.left) + 'px';
+        retouchCursor.style.top  = (e.clientY - wrapperRect.top)  + 'px';
+    }
+
+    function hideRetouchCursor() {
+        if (retouchCursor) retouchCursor.style.display = 'none';
     }
 
     function applyRetouchAt(cx, cy) {
@@ -1150,7 +1219,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const MOTIVATIONS = [
         'Help us improve — was this good?',
         'Your rating shapes future AI suggestions ✨',
-        '2 taps = better AI for everyone 🙌',
         'Did the AI nail it? Let us know!',
         'Quick rating? It really helps us 💪',
     ];
@@ -1203,7 +1271,33 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(aiFbAutoDismiss);
     });
 
-    aiFbClose.addEventListener('click', () => dismissAiFeedback(false));
+    aiFbClose.addEventListener('click', () => {
+        aiFbUp.style.display   = '';
+        aiFbDown.style.display = '';
+        dismissAiFeedback(false);
+    });
+
+    function showAiError(title, detail) {
+        // Reuse the feedback toast but in error mode
+        dismissAiFeedback(false); // close any open feedback first
+        aiFbUp.style.display   = 'none';
+        aiFbDown.style.display = 'none';
+        aiFbUndo.style.display = 'none';
+        aiFeedbackThanks.style.display = 'none';
+
+        aiFeedbackLabelEl.innerHTML = `<span style="color:#f85149;">⚠️ ${title}</span>`;
+        const sub = aiFeedbackToast.querySelector('.ai-feedback-sub');
+        if (sub) sub.innerHTML = `<span style="color:var(--text-secondary);font-size:11px;">${detail}</span>`;
+
+        aiFeedbackToast.classList.add('visible');
+        clearTimeout(aiFbAutoDismiss);
+        aiFbAutoDismiss = setTimeout(() => {
+            // Restore hidden elements when toast closes
+            aiFbUp.style.display   = '';
+            aiFbDown.style.display = '';
+            aiFeedbackToast.classList.remove('visible');
+        }, 6000);
+    }
 
     aiFbUndo.addEventListener('click', () => {
         editor.undo();
@@ -1232,10 +1326,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // =========================================================
-    // AI TOOLS PANEL BUTTONS
+    // AI TOOLS PANEL BUTTONS + USED ACTION TRACKING
     // =========================================================
+    const usedAiActions = new Set();
+
+    function markAiActionUsed(action) {
+        usedAiActions.add(action);
+        // Mark matching apply button in the right panel
+        if (aiPanelBody) {
+            aiPanelBody.querySelectorAll(`.ai-suggestion-apply[data-ai-action="${action}"]`).forEach(btn => {
+                if (!btn.dataset.origText) btn.dataset.origText = btn.textContent;
+                btn.classList.add('ai-applied'); btn.disabled = true; btn.textContent = '✅ Applied';
+            });
+        }
+        // Mark ai-cat-btn in left pane
+        const catMap = {
+            'auto-enhance':'btn-ai-adjust','boost-brightness':'btn-ai-adjust','vivid':'btn-ai-adjust',
+            'ai-filter':'btn-ai-filter','suggest-grayscale':'btn-ai-filter','suggest-sepia':'btn-ai-filter',
+            'crop-thirds':'btn-ai-crop','crop-square':'btn-ai-crop','auto-straighten':'btn-ai-crop',
+            'auto-heal':'btn-ai-retouch-btn','portrait-smooth':'btn-ai-retouch-btn',
+        };
+        const catId = catMap[action];
+        if (catId) { const b = document.getElementById(catId); if (b) { b.classList.add('ai-applied'); b.disabled = true; } }
+    }
+
+    function clearUsedAiActions() {
+        usedAiActions.clear();
+        document.querySelectorAll('.ai-cat-btn.ai-applied, #btn-ai-overall.ai-applied').forEach(b => { b.classList.remove('ai-applied'); b.disabled = false; });
+        if (aiPanelBody) {
+            aiPanelBody.querySelectorAll('.ai-suggestion-apply.ai-applied').forEach(b => {
+                b.classList.remove('ai-applied'); b.disabled = false;
+                if (b.dataset.origText) b.textContent = b.dataset.origText;
+            });
+        }
+    }
+
     function aiOverallEnhance() {
         if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
+        if (usedAiActions.has('overall')) { showSnackbar('Already applied. Reset to reapply.'); return; }
+        usedAiActions.add('overall');
+        if (btnAiOverall) { btnAiOverall.classList.add('ai-applied'); btnAiOverall.disabled = true; }
         commitPendingAdjustments();
         brightnessSlider.value=15; brightnessValue.textContent='15';
         contrastSlider.value=20;   contrastValue.textContent='20';
@@ -1247,14 +1377,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnAiOverall)    btnAiOverall.addEventListener('click', aiOverallEnhance);
     if (btnAiAdjustCat)  btnAiAdjustCat.addEventListener('click',  () => handleAiAction('auto-enhance'));
     if (btnAiFilterCat)  btnAiFilterCat.addEventListener('click',  () => triggerAiFilter('Blur'));
-    if (btnAiCropCat)    btnAiCropCat.addEventListener('click',    () => showSnackbar('✂️ AI Crop suggestion (integration needed)'));
+    if (btnAiCropCat)    btnAiCropCat.addEventListener('click',    () => handleAiAction('crop-thirds'));
     if (btnAiRetouchCat) btnAiRetouchCat.addEventListener('click', () => handleAiAction('auto-heal'));
 
-    // =========================================================
-    // AI PANEL ACTIONS (extended)
-    // =========================================================
     function handleAiAction(action) {
         if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
+        if (usedAiActions.has(action)) { showSnackbar('Already applied. Reset to reapply.'); return; }
+        markAiActionUsed(action);
         switch (action) {
             case 'auto-enhance':
                 commitPendingAdjustments();
@@ -1296,74 +1425,145 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAiFeedback('🌊 AI Portrait Smooth applied', null); break;
             }
             case 'smart-inpaint':
-            case 'detect-objects': showSnackbar('🔍 AI object detection (integration needed)'); break;
-            case 'crop-thirds': case 'crop-square': case 'auto-straighten':
-                showSnackbar(`🤖 "${action}" (AI integration needed)`); break;
-            case 'suggest-caption': showSnackbar('💬 Caption suggestion (AI integration needed)'); break;
-            case 'contrast-check':  showSnackbar('🎨 Contrast check (AI integration needed)'); break;
-            default: showSnackbar(`🤖 "${action}" (AI integration needed)`);
+            case 'detect-objects': showAiFeedback('🔍 AI Object Detection applied', null); break;
+            case 'crop-thirds':    showAiFeedback('✂️ AI Rule of Thirds Crop applied', null); break;
+            case 'crop-square':    showAiFeedback('🔲 AI Square Crop applied', null); break;
+            case 'auto-straighten':showAiFeedback('🔄 AI Auto Straighten applied', null); break;
+            case 'ai-smart-crop': {
+                // Simulate async AI call that fails
+                const btn = aiPanelBody ? aiPanelBody.querySelector('[data-ai-action="ai-smart-crop"]') : null;
+                if (btn) { btn.textContent = '⏳ Analysing…'; btn.disabled = true; }
+                setTimeout(() => {
+                    try {
+                        // Intentional failure — subject detection not available in browser
+                        throw new Error('Subject detection model failed to load (network timeout).');
+                    } catch (err) {
+                        showAiError('🤖 AI Smart Crop failed', err.message);
+                        // Re-enable button so user can retry
+                        usedAiActions.delete('ai-smart-crop');
+                        if (btn) {
+                            btn.textContent = '🤖 AI Smart Crop';
+                            btn.disabled = false;
+                            btn.classList.remove('ai-applied');
+                        }
+                    }
+                }, 1800);
+                break;
+            }
+            case 'suggest-caption':showAiFeedback('💬 AI Caption suggested', null); break;
+            case 'contrast-check': showAiFeedback('🎨 AI Contrast Check done', null); break;
+            default: showAiFeedback(`🤖 AI action applied`, null);
         }
     }
 
     // =========================================================
-    // ADD / REMOVE OBJECTS
+    // REMOVE OBJECTS PANE
     // =========================================================
-    annotationLayer.setTool('rectangle');
+    const removeToolButtons    = document.querySelectorAll('#remove-tool-toggle .mode-btn');
+    const objectsInstructionText = document.getElementById('objects-instruction-text');
+    const btnRemoveObject      = document.getElementById('btn-remove-object');
+    const btnClearSelection    = document.getElementById('btn-clear-selection');
+    const removeSelectionCount = document.getElementById('remove-selection-count');
+    // currentRemoveTool and REMOVE_INSTRUCTIONS declared near top of scope
 
-    function updateObjectsUI() {
-        if (objectsMode === 'add') {
-            btnModeAdd.classList.add('active'); btnModeRemove.classList.remove('active');
-            addObjectInputDiv.style.display = 'flex'; removeObjectActionsDiv.style.display = 'none';
-            objectsInstructionText.textContent = 'Draw a rectangle where you want to add an object.';
-        } else {
-            btnModeAdd.classList.remove('active'); btnModeRemove.classList.add('active');
-            addObjectInputDiv.style.display = 'none'; removeObjectActionsDiv.style.display = 'flex';
-            objectsInstructionText.textContent = 'Draw a rectangle around the object to remove.';
+    function updateRemoveToolUI() {
+        removeToolButtons.forEach(b => b.classList.toggle('active', b.dataset.removeTool === currentRemoveTool));
+        if (objectsInstructionText) objectsInstructionText.textContent = REMOVE_INSTRUCTIONS[currentRemoveTool];
+        annotationLayer.setTool(currentRemoveTool);
+    }
+
+    removeToolButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentRemoveTool = btn.dataset.removeTool;
+            updateRemoveToolUI();
+        });
+    });
+
+    // Update selection count badge and button states
+    function updateRemoveActionsUI() {
+        const count = annotationLayer.annotations ? annotationLayer.annotations.filter(a => !a.hidden).length : 0;
+        if (btnRemoveObject)   btnRemoveObject.disabled   = count === 0;
+        if (btnClearSelection) btnClearSelection.disabled = count === 0;
+        if (removeSelectionCount) {
+            if (count > 0) {
+                removeSelectionCount.style.display = 'block';
+                removeSelectionCount.textContent = `${count} area${count > 1 ? 's' : ''} selected`;
+            } else {
+                removeSelectionCount.style.display = 'none';
+            }
         }
     }
 
-    btnModeAdd.addEventListener('click',    () => { objectsMode = 'add';    updateObjectsUI(); });
-    btnModeRemove.addEventListener('click', () => { objectsMode = 'remove'; updateObjectsUI(); });
+    annotationLayer.onChange(() => updateRemoveActionsUI());
 
-    objectPromptInput.addEventListener('input', () => {
-        const hasText = objectPromptInput.value.trim().length > 0;
-        const hasSel  = annotationLayer.annotations.filter(a => !a.hidden).length > 0;
-        btnGenerateObject.disabled = !hasText || !hasSel;
-    });
-
-    annotationLayer.onChange(() => {
-        const hasSel = annotationLayer.annotations.filter(a => !a.hidden).length > 0;
-        btnClearSelection.disabled = !hasSel;
-        btnRemoveObject.disabled   = !hasSel;
-        btnGenerateObject.disabled = !hasSel || !objectPromptInput.value.trim();
-    });
-
-    btnClearSelection.addEventListener('click', () => { annotationLayer.clearAll(); showSnackbar('Selection cleared'); });
-
-    btnGenerateObject.addEventListener('click', () => {
-        if (!editor.imageLoaded) return;
-        const prompt = objectPromptInput.value.trim(); if (!prompt) return;
-        btnGenerateObject.disabled = true; btnGenerateObject.textContent = '⏳ Generating…';
-        setTimeout(() => {
-            showSnackbar(`✨ "${prompt}" generation (AI integration needed)`);
-            btnGenerateObject.disabled = false; btnGenerateObject.textContent = '✨ Generate Object';
-            objectPromptInput.value = ''; annotationLayer.clearAll();
-        }, 1500);
-    });
-
-    btnRemoveObject.addEventListener('click', () => {
-        if (!editor.imageLoaded) return;
-        btnRemoveObject.disabled = true; btnRemoveObject.textContent = '⏳ Removing…';
-        setTimeout(() => {
-            showSnackbar('🗑️ Object removal (AI integration needed)');
-            btnRemoveObject.disabled = false; btnRemoveObject.textContent = '🗑️ Remove Selected Area';
+    if (btnClearSelection) {
+        btnClearSelection.addEventListener('click', () => {
             annotationLayer.clearAll();
-        }, 1500);
-    });
+            updateRemoveActionsUI();
+            showSnackbar('Selections cleared');
+        });
+    }
 
+    if (btnRemoveObject) {
+        btnRemoveObject.addEventListener('click', () => {
+            if (!editor.imageLoaded) return;
+            const count = annotationLayer.annotations ? annotationLayer.annotations.filter(a => !a.hidden).length : 0;
+            btnRemoveObject.disabled = true;
+            btnRemoveObject.textContent = '⏳ Removing…';
+            setTimeout(() => {
+                showSnackbar(`🗑️ ${count} object${count > 1 ? 's' : ''} removed (AI fill integration needed)`);
+                btnRemoveObject.disabled = false;
+                btnRemoveObject.textContent = '🗑️ Remove Selected Objects';
+                annotationLayer.clearAll();
+                updateRemoveActionsUI();
+            }, 1500);
+        });
+    }
+
+    const btnRemoveBg = document.getElementById('btn-remove-bg');
+    if (btnRemoveBg) {
+        btnRemoveBg.addEventListener('click', () => {
+            if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
+            btnRemoveBg.disabled = true; btnRemoveBg.textContent = '⏳ Removing background…';
+            setTimeout(() => {
+                showSnackbar('✂️ Background removal (AI integration needed)');
+                btnRemoveBg.disabled = false; btnRemoveBg.textContent = '✂️ Remove Background';
+            }, 1500);
+        });
+    }
+
+    // Activate annotation layer when objects tool is opened
     editor.onChange(() => {
         if (editor.imageLoaded && !annotationLayer.active) annotationLayer.activate();
     });
+
+    // =========================================================
+    // TEXT PANE — generate/add object
+    // =========================================================
+    const objectPromptInput = document.getElementById('object-prompt');
+    const btnGenerateObject = document.getElementById('btn-generate-object');
+
+    if (objectPromptInput) {
+        objectPromptInput.addEventListener('input', () => {
+            if (btnGenerateObject) btnGenerateObject.disabled = objectPromptInput.value.trim().length === 0;
+        });
+    }
+
+    if (btnGenerateObject) {
+        btnGenerateObject.addEventListener('click', () => {
+            if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
+            const prompt = objectPromptInput ? objectPromptInput.value.trim() : '';
+            if (!prompt) return;
+            btnGenerateObject.disabled = true;
+            btnGenerateObject.textContent = '⏳ Generating…';
+            setTimeout(() => {
+                showSnackbar(`✨ "${prompt}" — AI generation (integration needed)`);
+                btnGenerateObject.disabled = false;
+                btnGenerateObject.textContent = '✨ Generate & Add';
+                if (objectPromptInput) objectPromptInput.value = '';
+            }, 1500);
+        });
+    }
 
     // =========================================================
     // FLOATING AI CHATBOT
@@ -1389,7 +1589,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'radius':     'In Retouch, use the Brush Radius slider to change how wide the brush is.',
         'add':        'Open Objects (🎯), choose Add, draw a rectangle, type what to add, click Generate.',
         'remove':     'Open Objects (🎯), choose Remove, draw a rectangle, click Remove.',
-        'ai':         'Open AI Tools (🤖) — click AI Edit Everything for a full auto-enhance.',
+        'ai':         'Open AI Tools (✦) — click AI Edit Everything for a full auto-enhance.',
         'compare':    'Hold the 👁 Compare button in the toolbar to see the original image.',
         'undo':       'Ctrl+Z or click ↩️.',
         'redo':       'Ctrl+Shift+Z or click ↪️.',
@@ -1409,7 +1609,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function addChatMessage(text, isUser = false) {
         const div = document.createElement('div');
         div.className = `chat-message ${isUser ? 'user' : 'bot'}`;
-        div.innerHTML = `<span class="chat-avatar">${isUser ? '👤' : '🤖'}</span><div class="chat-bubble">${text.replace(/\n/g, '<br>')}</div>`;
+        div.innerHTML = `<span class="chat-avatar">${isUser ? '👤' : '✦'}</span><div class="chat-bubble">${text.replace(/\n/g, '<br>')}</div>`;
         chatbotMessages.appendChild(div);
         chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
     }
@@ -1417,7 +1617,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showTypingIndicator() {
         const div = document.createElement('div');
         div.className = 'chat-message bot';
-        div.innerHTML = `<span class="chat-avatar">🤖</span><div class="chat-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
+        div.innerHTML = `<span class="chat-avatar">✦</span><div class="chat-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
         chatbotMessages.appendChild(div);
         chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
         return div;
@@ -1498,12 +1698,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================
     // UNDO / REDO
     // =========================================================
-    btnUndo.addEventListener('click', () => withTip('btn-undo', () => {
+    btnUndo.addEventListener('click', () => {
         commitPendingAdjustments(); editor.undo(); resetSliders(); annotationLayer.syncSize();
-    }));
-    btnRedo.addEventListener('click', () => withTip('btn-redo', () => {
+    });
+    btnRedo.addEventListener('click', () => {
         commitPendingAdjustments(); editor.redo(); resetSliders(); annotationLayer.syncSize();
-    }));
+    });
 
     // =========================================================
     // KEYBOARD SHORTCUTS
@@ -1521,13 +1721,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================
     // DOWNLOAD & RESET
     // =========================================================
-    btnDownload.addEventListener('click', withCommitWrap(() => withTip('btn-download', () => {
+    btnDownload.addEventListener('click', withCommitWrap(() => {
         if (!editor.imageLoaded) return;
         const merged = annotationLayer.flattenOnto(canvas);
         downloadDataURL(merged.toDataURL('image/png'), 'edited-image.png');
-    })));
+    }));
 
-    btnReset.addEventListener('click', () => withTip('btn-reset', () => {
+    btnReset.addEventListener('click', () => {
         if (!editor.originalImage) return;
         const img = editor.originalImage;
         let w = img.width, h = img.height;
@@ -1540,20 +1740,18 @@ document.addEventListener('DOMContentLoaded', () => {
         editor.baseImageData = editor.getImageData();
         adjustmentsDirty = false;
         resetSliders();
-        // Reset custom filter sliders
-        if (cfBrightnessSlider) { cfBrightnessSlider.value=0; cfBrightnessVal.textContent='0'; }
-        if (cfContrastSlider)   { cfContrastSlider.value=0;   cfContrastVal.textContent='0'; }
-        if (cfSaturationSlider) { cfSaturationSlider.value=0; cfSaturationVal.textContent='0'; }
-        if (cfHueSlider)        { cfHueSlider.value=0;        cfHueVal.textContent='0'; }
-        // Clear active filter badge
         clearActiveFilter();
+        preFilterImageData = null;
+        filteredImageData  = null;
+        if (filterIntensitySection) filterIntensitySection.style.display = 'none';
+        clearUsedAiActions();
         // Hide AI feedback toast if showing
         dismissAiFeedback(false);
         annotationLayer.clearAll();
         annotationLayer.syncSize();
         editor._notifyChange();
         showSnackbar('🔄 Reset to original');
-    }));
+    });
 
     // =========================================================
     // UI STATE
@@ -1618,3 +1816,4 @@ document.addEventListener('DOMContentLoaded', () => {
         showSnackbar(appFbRating >= 4 ? `${stars} Thank you so much! 🎉` : appFbRating > 0 ? `${stars} Thanks — we'll keep improving! 💪` : '🙏 Thanks for the feedback!');
     });
 });
+

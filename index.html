@@ -48,7 +48,7 @@
             </div>
             <div class="toolbar-spacer"></div>
             <div class="toolbar-group">
-                <button class="btn btn-compare" id="btn-compare" title="Hold to compare with original">👁 Compare</button>
+                <button class="btn btn-reset" id="btn-compare" title="Hold to compare with original">👁 Compare</button>
                 <button class="btn" id="btn-reset" title="Reset to original">🔄 Reset</button>
                 <button class="btn btn-primary" id="btn-download" title="Download image">💾 Save</button>
             </div>
@@ -75,12 +75,27 @@
                     <span class="rail-icon">🪄</span>
                     <span class="rail-label">Retouch</span>
                 </button>
-                <button class="rail-btn" data-tool="objects" title="Objects">
-                    <span class="rail-icon">🎯</span>
-                    <span class="rail-label">Objects</span>
+                <button class="rail-btn" data-tool="objects" title="Remove Objects">
+                    <span class="rail-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <!-- Dashed selection rectangle -->
+                            <rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 2"/>
+                            <!-- X in the middle -->
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                        </svg>
+                    </span>
+                    <span class="rail-label">Remove</span>
                 </button>
                 <button class="rail-btn" data-tool="ai" title="AI Tools">
-                    <span class="rail-icon">🤖</span>
+                    <span class="rail-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <!-- Sparkle / wand icon -->
+                            <path d="M12 3v3M3 12h3M12 21v-3M21 12h-3"/>
+                            <path d="M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </span>
                     <span class="rail-label">AI Tools</span>
                 </button>
                 <button class="rail-btn" data-tool="text" title="Text">
@@ -195,61 +210,12 @@
                             <button class="filter-btn" id="btn-sharpen">🔪<span>Sharpen</span></button>
                             <button class="filter-btn" id="btn-noise">📡<span>Noise</span></button>
                         </div>
-                        <div class="slider-group" style="margin-top:4px;">
+                        <div class="slider-group" id="blur-intensity-group" style="display:none; margin-top:4px;">
                             <div class="slider-header">
                                 <label class="label" for="blur-amount">Blur Intensity</label>
                                 <span class="value" id="blur-amount-value">3</span>
                             </div>
                             <input type="range" id="blur-amount" min="1" max="20" value="3">
-                        </div>
-                    </div>
-                    <!-- Applied filter indicator -->
-                    <div class="filter-applied-bar" id="filter-intensity-bar" style="display:none;">
-                        <div class="filter-applied-bar-label">Filter applied</div>
-                        <div class="filter-applied-bar-track">
-                            <div class="filter-applied-bar-fill" id="filter-intensity-fill"></div>
-                        </div>
-                    </div>
-                    <div class="pane-section">
-                        <p class="pane-label">Custom Look</p>
-                        <div class="custom-filter-card">
-                            <div class="custom-filter-preview" id="custom-filter-preview">
-                                <span id="custom-filter-preview-label">Open an image to preview</span>
-                            </div>
-                            <div class="custom-filter-sliders">
-                                <div class="slider-group">
-                                    <div class="slider-header">
-                                        <label class="label" for="cf-brightness">Brightness</label>
-                                        <span class="value" id="cf-brightness-value">0</span>
-                                    </div>
-                                    <input type="range" id="cf-brightness" min="-100" max="100" value="0">
-                                </div>
-                                <div class="slider-group">
-                                    <div class="slider-header">
-                                        <label class="label" for="cf-contrast">Contrast</label>
-                                        <span class="value" id="cf-contrast-value">0</span>
-                                    </div>
-                                    <input type="range" id="cf-contrast" min="-100" max="100" value="0">
-                                </div>
-                                <div class="slider-group">
-                                    <div class="slider-header">
-                                        <label class="label" for="cf-saturation">Saturation</label>
-                                        <span class="value" id="cf-saturation-value">0</span>
-                                    </div>
-                                    <input type="range" id="cf-saturation" min="-100" max="100" value="0">
-                                </div>
-                                <div class="slider-group">
-                                    <div class="slider-header">
-                                        <label class="label" for="cf-hue">Hue Shift</label>
-                                        <span class="value" id="cf-hue-value">0</span>
-                                    </div>
-                                    <input type="range" id="cf-hue" min="-180" max="180" value="0">
-                                </div>
-                            </div>
-                            <div class="custom-filter-actions">
-                                <button class="btn btn-primary w-full" id="btn-apply-custom-filter">✅ Apply Look</button>
-                                <button class="btn" id="btn-reset-custom-filter">↺</button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -292,31 +258,36 @@
                     </div>
                 </div>
 
-                <!-- OBJECTS panel -->
+                <!-- OBJECTS / REMOVE OBJECTS panel -->
                 <div class="tool-pane" id="pane-objects" style="display:none;">
                     <div class="pane-section">
-                        <div class="pane-tooltip"><div class="pane-tooltip-title">🎯 Add / Remove Objects</div>Switch between Add and Remove mode. Draw a rectangle on the canvas, then generate a new object or remove the selected area using AI.</div>
-                        <p class="pane-label">Add / Remove Objects</p>
-                        <p class="pane-desc">Draw a rectangle on the image, then choose to add or remove.</p>
-                        <div class="objects-mode-toggle">
-                            <button class="mode-btn active" id="btn-mode-add">
-                                <span class="mode-icon">➕</span>
-                                <span class="mode-label">Add</span>
+                        <p class="pane-label">🗑️ Remove Objects</p>
+                        <p class="pane-desc">Select the objects you want removed from the photo, then click Remove. You can mark multiple areas before removing.</p>
+                    </div>
+                    <div class="pane-section">
+                        <p class="pane-label">Selection Tool</p>
+                        <div class="remove-tool-toggle" id="remove-tool-toggle">
+                            <button class="mode-btn active" data-remove-tool="rectangle">
+                                <span class="mode-icon">⬜</span>
+                                <span class="mode-label">Rectangle</span>
                             </button>
-                            <button class="mode-btn" id="btn-mode-remove">
-                                <span class="mode-icon">➖</span>
-                                <span class="mode-label">Remove</span>
+                            <button class="mode-btn" data-remove-tool="ellipse">
+                                <span class="mode-icon">⭕</span>
+                                <span class="mode-label">Circle</span>
+                            </button>
+                            <button class="mode-btn" data-remove-tool="freehand">
+                                <span class="mode-icon">✏️</span>
+                                <span class="mode-label">Freehand</span>
                             </button>
                         </div>
-                        <p class="pane-hint" id="objects-instruction-text">Draw a rectangle where you want to add an object.</p>
-                        <div id="add-object-input">
-                            <input type="text" id="object-prompt" class="text-input" placeholder="e.g., a red balloon…">
-                            <button class="btn btn-ai w-full" id="btn-generate-object" disabled style="margin-top:6px;">✨ Generate Object</button>
-                        </div>
-                        <div id="remove-object-actions" style="display:none;">
-                            <button class="btn btn-ai w-full" id="btn-remove-object" disabled>🗑️ Remove Selected Area</button>
-                        </div>
-                        <button class="btn btn-small w-full" id="btn-clear-selection" style="margin-top:8px;" disabled>✖ Clear Selection</button>
+                        <p class="pane-hint" id="objects-instruction-text">Draw a selection around each object to remove, then click Remove below.</p>
+                    </div>
+                    <div class="pane-section">
+                        <p class="pane-label">Actions</p>
+                        <button class="btn btn-primary w-full" id="btn-remove-object" disabled>🗑️ Remove Selected Objects</button>
+                        <button class="btn w-full" id="btn-remove-bg" style="margin-top:6px;">✂️ Remove Background</button>
+                        <button class="btn btn-small w-full" id="btn-clear-selection" style="margin-top:6px;" disabled>✖ Clear All Selections</button>
+                        <div id="remove-selection-count" style="display:none;" class="pane-hint"></div>
                     </div>
                 </div>
 
@@ -357,7 +328,7 @@
                 <!-- TEXT panel -->
                 <div class="tool-pane" id="pane-text" style="display:none;">
                     <div class="pane-section">
-                        <div class="pane-tooltip"><div class="pane-tooltip-title">T Text Tool</div>Set a font size and colour, then click anywhere on your image to type. The text is permanently stamped onto the image — use Undo to remove it.</div>
+                        <p class="pane-label">T Text Overlay</p>
                         <p class="pane-desc">Click on the image to place text.</p>
                         <div class="slider-group">
                             <div class="slider-header">
@@ -379,6 +350,13 @@
                         </div>
                         <p class="pane-hint" style="margin-top:10px;">Click on the canvas to place text.</p>
                     </div>
+                    <div class="pane-section">
+                        <p class="pane-label">✨ Add Object (AI)</p>
+                        <p class="pane-desc">Describe an object and let AI generate it into your photo.</p>
+                        <input type="text" id="object-prompt" class="text-input" placeholder="e.g., a red balloon, a cat…">
+                        <button class="btn btn-primary w-full" id="btn-generate-object" disabled style="margin-top:6px;">✨ Generate &amp; Add</button>
+                        <p class="pane-hint">Type what you want to add, then click Generate.</p>
+                    </div>
                 </div>
             </div>
 
@@ -392,16 +370,16 @@
                         <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">📂 Choose Image</button>
                     </div>
                 </div>
-                <div class="canvas-wrapper">
+                <div class="canvas-wrapper" id="canvas-wrapper">
                     <canvas id="editor-canvas"></canvas>
                     <canvas id="annotation-overlay"></canvas>
                     <canvas id="crop-overlay"></canvas>
+                    <!-- Compare overlay — inside wrapper so it lines up exactly -->
+                    <canvas id="compare-canvas" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></canvas>
+                    <div class="compare-badge" id="compare-badge" style="display:none;">Original</div>
+                    <!-- Retouch cursor — inside wrapper so coordinates match -->
+                    <div class="retouch-cursor" id="retouch-cursor" style="display:none;"></div>
                 </div>
-                <!-- Compare overlay -->
-                <canvas id="compare-canvas" style="display:none; position:absolute; top:0; left:0; pointer-events:none; opacity:1;"></canvas>
-                <div class="compare-badge" id="compare-badge" style="display:none;">Original</div>
-                <!-- Retouch cursor -->
-                <div class="retouch-cursor" id="retouch-cursor" style="display:none;"></div>
                 <div class="mode-indicator" id="mode-indicator" style="display:none;">
                     <span class="mode-dot"></span>
                     <span id="mode-indicator-text">Crop Mode</span>
@@ -421,7 +399,12 @@
     </div>
 
     <!-- ===== Floating AI Chatbot ===== -->
-    <div class="chatbot-bubble" id="chatbot-bubble" title="AI Assistant">🤖</div>
+    <div class="chatbot-bubble" id="chatbot-bubble" title="AI Assistant">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            <path d="M9.5 9h.01M12 7l.8 2.4L15 10l-2.2.9L12 13l-.8-2.1L9 10l2.2-.9z" stroke-width="1.4"/>
+        </svg>
+    </div>
     <div class="chatbot-float" id="chatbot-float">
         <div class="chatbot-float-header">
             <span class="chatbot-float-title">🤖 AI Assistant</span>
@@ -448,7 +431,12 @@
     <div class="ai-feedback-toast" id="ai-feedback-toast">
         <div class="ai-feedback-toast-inner">
             <div class="ai-feedback-left">
-                <span class="ai-feedback-icon">🤖</span>
+                <span class="ai-feedback-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-secondary)">
+                        <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/>
+                        <path d="M19 14l.8 2.2 2.2.8-2.2.8L19 20l-.8-2.2L16 17l2.2-.8z" stroke-width="1.4"/>
+                    </svg>
+                </span>
                 <div class="ai-feedback-text">
                     <span class="ai-feedback-label" id="ai-feedback-label">AI applied!</span>
                     <span class="ai-feedback-sub">Help us improve — was this good?</span>
@@ -486,6 +474,20 @@
                 <button class="btn" id="app-fb-cancel">Maybe later</button>
                 <button class="btn btn-primary" id="app-fb-submit">Send feedback 🚀</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ===== Filter Intensity Floating Overlay ===== -->
+    <div class="filter-intensity-overlay" id="filter-intensity-section" style="display:none;">
+        <div class="filter-intensity-card">
+            <div class="filter-intensity-header">
+                <span class="filter-intensity-name" id="filter-intensity-label">Filter</span>
+                <span class="filter-intensity-val" id="filter-intensity-value">100%</span>
+            </div>
+            <p class="filter-intensity-hint" id="filter-intensity-desc">Drag to adjust how strongly the filter is applied.</p>
+            <input type="range" id="filter-intensity-slider" min="0" max="100" value="100" class="filter-intensity-range">
+            <button class="btn btn-primary w-full" id="btn-commit-filter" style="margin-top:10px;">✅ Apply at this intensity</button>
+            <button class="btn w-full" id="btn-cancel-filter" style="margin-top:4px;">✕ Cancel</button>
         </div>
     </div>
 
