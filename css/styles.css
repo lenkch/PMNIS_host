@@ -717,19 +717,46 @@ input[type="range"]::-moz-range-thumb {
 /* ===== AI Feedback Toast ===== */
 .ai-feedback-toast {
     position: fixed;
-    bottom: -110px;   /* hidden below viewport */
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(540px, calc(100vw - 32px));
+    bottom: 20px;
+    right: 24px;
+    left: auto;
+    transform: none;
+    width: min(400px, calc(100vw - 32px));
     background: var(--bg-secondary);
     border: 1px solid var(--accent-secondary);
     border-radius: 14px;
     box-shadow: 0 8px 32px rgba(0,0,0,.55);
     z-index: 8500;
     overflow: hidden;
-    transition: bottom .35s cubic-bezier(.34,1.28,.64,1);
+    transition: opacity .25s ease, transform .25s ease;
+    opacity: 0; pointer-events: none;
 }
-.ai-feedback-toast.visible { bottom: 20px; }
+.ai-feedback-toast.visible { opacity: 1; pointer-events: auto; }
+
+.ai-detect-confirm-panel {
+    position: fixed;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(420px, calc(100vw - 80px));
+    border: 1px solid var(--accent-secondary);
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.45);
+    z-index: 8600;
+    padding: 12px;
+    display: none;
+}
+.ai-detect-confirm-panel.visible { display: block; }
+.ai-detect-confirm-header {
+    font-size: 13px; font-weight: 700; margin-bottom: 8px;
+}
+.ai-detect-confirm-body {
+    font-size: 12px; margin-bottom: 10px; color: var(--text-secondary);
+}
+.ai-detect-confirm-actions { display: flex; gap: 8px; margin-bottom: 8px; }
+.ai-detect-confirm-progress { font-size: 11px; color: var(--text-secondary); }
+
 
 .ai-feedback-toast-inner {
     display: flex; align-items: center; justify-content: space-between;

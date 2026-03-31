@@ -1242,11 +1242,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiFeedbackReasonTitle = document.getElementById('ai-feedback-reason-title');
     const aiFeedbackReasonButtons = document.getElementById('ai-feedback-reason-buttons');
 
+    const detectConfirmPanel = document.getElementById('ai-detect-confirm-panel');
+    const detectConfirmBody = document.getElementById('ai-detect-confirm-body');
+    const detectConfirmKeep = document.getElementById('ai-detect-confirm-keep');
+    const detectConfirmReject = document.getElementById('ai-detect-confirm-reject');
+    const detectConfirmProgress = document.getElementById('ai-detect-confirm-progress');
+
     let aiFbAutoDismiss = null;
     let aiFbUndoSnapshot = null; // imageData to undo to
     let aiFeedbackState = null;
     let aiFeedbackReason = null;
     let aiFeedbackContext = 'default';
+
+    let aiDetectNegativeStreak = 0;
+    let aiRequireConfirmEachDetection = false;
+    const AI_DETECT_NEGATIVE_THRESHOLD = 2;
+
 
     const FEEDBACK_REASONS = {
         default: {
@@ -1354,6 +1365,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    let pendingDetectCandidates = [];
+    let detectCandidateIndex = 0;
+
+    function hideDetectConfirmPanel() {
+        if (detectConfirmPanel) {
+            detectConfirmPanel.classList.remove('visible');
+        }
+    }
+
+    function showDetectConfirmPanel() {
+        if (!detectConfirmPanel || pendingDetectCandidates.length === 0) return;
+
+        const candidate = pendingDetectCandidates[detectCandidateIndex];
+        detectConfirmBody.textContent = `AI detected: ${candidate.reason || candidate.label || 'candidate'}. Keep this selection?`;
+        detectConfirmProgress.textContent = `(${detectCandidateIndex + 1} of ${pendingDetectCandidates.length})`;
+        detectConfirmPanel.classList.add('visible');
+
+        annotationLayer.setTempCandidate(candidate);
+    }
+
+    function processDetectCandidate(keep) {
+        const candidate = pendingDetectCandidates[detectCandidateIndex];
+        if (keep) {
+            annotationLayer.annotations.push(candidate);
+        }
+
+        detectCandidateIndex += 1;
+
+        if (detectCandidateIndex >= pendingDetectCandidates.length) {
+            hideDetectConfirmPanel();
+            pendingDetectCandidates = [];
+            detectCandidateIndex = 0;
+            aiRequireConfirmEachDetection = false;
+            aiDetectNegativeStreak = 0;
+            annotationLayer.clearTempCandidate();
+            updateRemoveActionsUI();
+            showSnackbar('✅ AI object confirmations complete.');
+        } else {
+            showDetectConfirmPanel();
+        }
+
+        annotationLayer.redraw();
+        annotationLayer._notifyChange();
+    }
+
+    if (detectConfirmKeep) detectConfirmKeep.addEventListener('click', () => processDetectCandidate(true));
+    if (detectConfirmReject) detectConfirmReject.addEventListener('click', () => processDetectCandidate(false));
+
     aiFbUp.addEventListener('click', () => {
         aiFeedbackState = 'good';
         aiFbUp.classList.add('selected-up');
@@ -1362,6 +1421,8 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(aiFbAutoDismiss);
 
         if (aiFeedbackContext === 'detect') {
+            aiDetectNegativeStreak = 0;
+            aiRequireConfirmEachDetection = false;
             aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Great detection! Pick the reason that matches your result.';
         } else if (aiFeedbackContext === 'inpaint') {
             aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Great inpaint! Pick the reason that matches your result.';
@@ -1381,6 +1442,11 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(aiFbAutoDismiss);
 
         if (aiFeedbackContext === 'detect') {
+            aiDetectNegativeStreak += 1;
+            if (aiDetectNegativeStreak >= AI_DETECT_NEGATIVE_THRESHOLD) {
+                aiRequireConfirmEachDetection = true;
+                showSnackbar('⚠️ Auto-detect got bad feedback twice; next detection requires per-item confirmation.');
+            }
             aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Not ideal detection — tell us what went wrong.';
         } else if (aiFeedbackContext === 'inpaint') {
             aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Not ideal inpaint — tell us what went wrong.';
@@ -1564,14 +1630,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             case 'detect-objects': {
                 if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); break; }
-                const found = annotationLayer.aiDetectObjects(canvas);
-                if (found > 0) {
-                    showSnackbar(`🔍 Detected ${found} object${found > 1 ? 's' : ''}. Draw selections or click Remove Selected Objects.`);
-                    updateRemoveActionsUI();
-                    showAiFeedback(`🔍 AI Object Detection applied`, () => { editor.undo(); resetSliders(); }, 'detect');
-                } else {
+
+                annotationLayer.clearTempCandidate();
+                const candidates = annotationLayer.aiDetectObjects(canvas);
+
+                if (candidates.length === 0) {
                     showSnackbar('🔍 No objects detected. Try another area or tool.');
+                    break;
                 }
+
+                if (aiRequireConfirmEachDetection) {
+                    pendingDetectCandidates = candidates;
+                    detectCandidateIndex = 0;
+                    showDetectConfirmPanel();
+                } else {
+                    annotationLayer.addAnnotations(candidates);
+                    updateRemoveActionsUI();
+                }
+
+                // clear forced confirm after one initiation
+                if (aiRequireConfirmEachDetection) {
+                    showSnackbar('⚠️ Confirm each detected selection via the confirmation panel.');
+                } else {
+                    showSnackbar(`🔍 Detected ${candidates.length} object${candidates.length > 1 ? 's' : ''}. Draw selections or click Remove Selected Objects.`);
+                }
+
+                showAiFeedback(`🔍 AI Object Detection applied`, () => { editor.undo(); resetSliders(); }, 'detect');
                 break;
             }
             case 'crop-thirds':    showAiFeedback('✂️ AI Rule of Thirds Crop applied', null, 'default'); break;

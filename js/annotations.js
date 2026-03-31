@@ -56,6 +56,7 @@ export class AnnotationLayer {
         this.currentPath = [];
         this.startPoint = null;
         this.selectedId = null;
+        this.tempCandidate = null;
 
 
         this._onMouseDown = this._onMouseDown.bind(this);
@@ -70,6 +71,16 @@ export class AnnotationLayer {
 
     _notifyChange() {
         this._onChangeCallbacks.forEach(cb => cb());
+    }
+
+    setTempCandidate(candidate) {
+        this.tempCandidate = candidate || null;
+        this.redraw();
+    }
+
+    clearTempCandidate() {
+        this.tempCandidate = null;
+        this.redraw();
     }
 
     /**
@@ -399,6 +410,13 @@ export class AnnotationLayer {
         this._notifyChange();
     }
 
+    addAnnotations(annotations) {
+        if (!Array.isArray(annotations) || annotations.length === 0) return;
+        this.annotations.push(...annotations);
+        this.redraw();
+        this._notifyChange();
+    }
+
     /**
      * Erase the image region covered by an annotation from the editor canvas.
      * Fills the bounding box with a heavily blurred copy of its surroundings,
@@ -575,6 +593,30 @@ export class AnnotationLayer {
                 this._drawSelectionHighlight(ctx, ann);
             }
         }
+
+        if (this.tempCandidate) {
+            const ann = this.tempCandidate;
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 165, 0, 0.95)';
+            ctx.fillStyle = 'rgba(255, 165, 0, 0.17)';
+            ctx.lineWidth = (ann.lineWidth || 4);
+            ctx.setLineDash([8, 6]);
+            if (ann.type === ANNOTATION_TOOLS.RECTANGLE) {
+                ctx.strokeRect(ann.x, ann.y, ann.width, ann.height);
+                ctx.fillRect(ann.x, ann.y, ann.width, ann.height);
+            } else if (ann.type === ANNOTATION_TOOLS.ELLIPSE) {
+                ctx.beginPath();
+                ctx.ellipse(ann.cx, ann.cy, ann.rx, ann.ry, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            } else if (ann.type === ANNOTATION_TOOLS.MARKER) {
+                ctx.beginPath();
+                ctx.arc(ann.x, ann.y, ann.radius || 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
     }
 
     _drawSelectionHighlight(ctx, ann) {
@@ -721,7 +763,7 @@ export class AnnotationLayer {
      * Analyzes the image and generates bounding-box annotations for "detected objects".
      * This uses simple edge/contrast detection as a placeholder for a real AI model.
      */
-    aiDetectObjects(editorCanvas) {
+    aiDetectObjects(editorCanvas, confirmFn = () => true) {
         const w = editorCanvas.width;
         const h = editorCanvas.height;
         const ctx = editorCanvas.getContext('2d', { willReadFrequently: true });
@@ -836,11 +878,7 @@ export class AnnotationLayer {
             };
         });
 
-        this.annotations.push(...newAnnotations);
-        this.redraw();
-        this._notifyChange();
-
-        return newAnnotations.length;
+        return newAnnotations;
     }
 
     /**
