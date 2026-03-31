@@ -520,9 +520,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="ai-suggestion-desc">AI scans your image and automatically highlights removable objects — no manual selection needed.</div>
                     <button class="ai-suggestion-apply w-full" data-ai-action="detect-objects">🔍 Auto-Detect Objects</button>
                 </div>
-                <div class="ai-suggestion-card">
-                    <div class="ai-suggestion-desc">After selecting areas, AI fills them with a realistic background matching the surroundings.</div>
-                    <button class="ai-suggestion-apply w-full" data-ai-action="smart-inpaint">✨ Smart Fill</button>
                 </div>
                 <div class="ai-suggestion-card">
                     <div class="ai-suggestion-desc">Use Rectangle for clean edges, Circle for round objects, Freehand for irregular shapes.</div>
