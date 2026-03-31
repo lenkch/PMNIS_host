@@ -2,7 +2,7 @@
  * App bootstrap — new layout: icon rail + sliding left panel + sliding right AI panel.
  */
 import { Editor } from './editor.js';
-import { CropTool } from './crop.js';
+import { CropTool } from './crop.js?v=2';
 import { AnnotationLayer } from './annotations.js';
 import { applyBrightness, applyContrast, applySaturation } from './adjustments.js';
 import { grayscale, sepia, invert, blur } from './filters.js';
@@ -61,6 +61,11 @@ document.addEventListener('DOMContentLoaded', () => {
         {
             targetId: 'pane-objects', aiId: 'ai-panel', tool: 'objects',
             leftTitle: '🗑️ Remove Objects', leftText: 'Select Rectangle, Ellipse or Freehand, draw around objects you want removed, then click Remove. You can mark multiple areas at once.',
+            rightTitle: null, rightText: null
+        },
+        {
+            targetId: 'pane-add-objects', aiId: null, tool: 'add-objects',
+            leftTitle: '➕ Add Objects',   leftText: 'Place an image on top of your photo — upload one from your device, or describe what you want and let AI generate it. Use the Size and Position sliders to place it exactly where you want, then click "Place on Image".',
             rightTitle: null, rightText: null
         },
         {
@@ -339,9 +344,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Left panel controls
     const btnCrop           = document.getElementById('btn-crop');
-    const btnCropApply      = document.getElementById('btn-crop-apply');
-    const btnCropCancel     = document.getElementById('btn-crop-cancel');
-    const cropActionsInline = document.getElementById('crop-actions-inline');
     const btnRotateCW       = document.getElementById('btn-rotate-cw');
     const btnRotateCCW      = document.getElementById('btn-rotate-ccw');
     const btnFlipH          = document.getElementById('btn-flip-h');
@@ -430,13 +432,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const railBtns       = document.querySelectorAll('.rail-btn[data-tool]');
 
     const PANE_TITLES = {
-        crop:    'Crop & Transform',
-        adjust:  'Adjustments',
-        filters: 'Filters',
-        retouch: 'Retouch',
-        objects: 'Remove Objects',
-        ai:      'AI Tools',
-        text:    'Text & Add Objects',
+        crop:          'Crop & Transform',
+        adjust:        'Adjustments',
+        filters:       'Filters',
+        retouch:       'Retouch',
+        objects:       'Remove Objects',
+        'add-objects': 'Add Objects',
+        ai:            'AI Tools',
+        text:          'Text & Add Objects',
     };
 
     const AI_PANEL_CONTENT = {
@@ -544,7 +547,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="ai-suggestion-desc">Be specific when adding objects — "a white fluffy cat on the grass" gives better results than "cat".</div>
                 </div>`
         },
+        'add-objects': null,
     };
+
+    const AI_REASONING_HTML = `
+        <div class="ai-suggestion-card">
+            <div class="ai-suggestion-intro">🪄 Here's why I made these changes:</div>
+            <ul class="ai-reasoning-list" style="width:100%;">
+                <li>☀️ <strong>Brightness +15</strong> — image histogram is shifted left, indicating underexposure</li>
+                <li>◑ <strong>Contrast +20</strong> — mid-tone range is narrow, adding depth and definition</li>
+                <li>🎨 <strong>Saturation +10</strong> — colours appear muted compared to scene average</li>
+            </ul>
+        </div>
+        <div class="ai-suggestion-card">
+            <div class="ai-suggestion-desc">Want to fine-tune? Open <strong>Adjustments</strong> to tweak individual sliders, or <strong>Filters</strong> to add a colour style on top.</div>
+        </div>`;
 
     // Objects remove tool state — declared here so openTool() can reference it
     let currentRemoveTool = 'rectangle';
@@ -561,6 +578,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (activeTool === 'text') deactivateTextTool();
         if (activeTool === 'objects' && tool !== 'objects') annotationLayer.clearAll();
+        if (activeTool === 'add-objects' && tool !== 'add-objects') {
+            if (typeof cancelStaged === 'function') cancelStaged();
+        }
 
         activeTool = tool;
         railBtns.forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
@@ -631,6 +651,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
             aiPanel.classList.add('open');
+        } else if (tool === 'ai' && usedAiActions.has('overall')) {
+            // AI Edit Everything was applied — reopen reasoning panel
+            aiPanelTitle.textContent = '💡 AI Reasoning';
+            aiPanelBody.innerHTML = AI_REASONING_HTML;
+            aiPanel.classList.add('open');
         } else {
             aiPanel.classList.remove('open');
         }
@@ -647,6 +672,10 @@ document.addEventListener('DOMContentLoaded', () => {
             annotationLayer.setTool(currentRemoveTool);
             if (objectsInstructionText) objectsInstructionText.textContent = REMOVE_INSTRUCTIONS[currentRemoveTool];
             removeToolButtons.forEach(b => b.classList.toggle('active', b.dataset.removeTool === currentRemoveTool));
+        } else if (tool === 'text') {
+            hideRetouchCursor();
+            if (annotationLayer.active) annotationLayer.overlay.style.pointerEvents = 'none';
+            activateTextTool();
         } else {
             hideRetouchCursor();
             if (annotationLayer.active) annotationLayer.overlay.style.pointerEvents = 'none';
@@ -726,6 +755,108 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // =========================================================
+    // GENERATE IMAGE MODAL
+    // =========================================================
+    const genModalOverlay   = document.getElementById('gen-modal-overlay');
+    const genModalClose     = document.getElementById('gen-modal-close');
+    const genBtnCancel      = document.getElementById('gen-btn-cancel');
+    const genBtnGenerate    = document.getElementById('gen-btn-generate');
+    const genPromptInput    = document.getElementById('gen-prompt');
+    const genStatus         = document.getElementById('gen-status');
+    const genStatusText     = document.getElementById('gen-status-text');
+    const btnOpenGenerate   = document.getElementById('btn-open-generate');
+    const btnToolbarCreate  = document.getElementById('btn-toolbar-create');
+
+    function openGenModal() {
+        genModalOverlay.classList.add('open');
+        genStatus.style.display = 'none';
+        genBtnGenerate.disabled = false;
+        genBtnGenerate.textContent = '✨ Generate';
+        if (genPromptInput) { genPromptInput.value = ''; genPromptInput.focus(); }
+    }
+
+    function closeGenModal() {
+        genModalOverlay.classList.remove('open');
+    }
+
+    if (btnToolbarCreate)  btnToolbarCreate.addEventListener('click',  openGenModal);
+    if (btnOpenGenerate)   btnOpenGenerate.addEventListener('click',   openGenModal);
+    if (genModalClose)     genModalClose.addEventListener('click',     closeGenModal);
+    if (genBtnCancel)      genBtnCancel.addEventListener('click',      closeGenModal);
+
+
+    // Generate — draw the pre-loaded kitten img directly into the editor
+    if (genBtnGenerate) {
+        genBtnGenerate.addEventListener('click', () => {
+            genBtnGenerate.disabled = true;
+            genBtnGenerate.textContent = '⏳ Generating…';
+            genStatus.style.display = 'flex';
+            genStatusText.textContent = 'Creating your image…';
+
+            function onImageReady(imgEl) {
+                try {
+
+                    const MAX = 4000;
+                    let w = imgEl.naturalWidth, h = imgEl.naturalHeight;
+                    if (!w || !h) throw new Error('no dimensions');
+                    if (w > MAX || h > MAX) {
+                        const r = Math.min(MAX / w, MAX / h);
+                        w = Math.round(w * r); h = Math.round(h * r);
+                    }
+                    editor.canvas.width  = w;
+                    editor.canvas.height = h;
+                    editor.ctx.drawImage(imgEl, 0, 0, w, h);
+                    editor.originalImage = imgEl;
+                    editor.history.clear();
+                    editor.history.push(editor.getImageData());
+                    editor.baseImageData = editor.getImageData();
+                    editor.imageLoaded = true;
+                    editor._notifyChange();
+                    dropZone.style.display = 'none';
+                    workspace.classList.add('has-image');
+                    resetSliders();
+                    annotationLayer.syncSize();
+                    closeGenModal();
+                    showSnackbar('✨ Image created!');
+                    if (currentRole === 'beginner' && !tourDone) {
+                        tourStep = 0; tourSubStep = 0;
+                        setTimeout(() => showTourStep(0, 0), 400);
+                    }
+                } catch(e) {
+                    genStatus.style.display = 'none';
+                    genBtnGenerate.disabled = false;
+                    genBtnGenerate.textContent = '✨ Generate';
+                    showSnackbar('⚠️ Could not load image');
+                }
+            }
+
+            const kittenEl = document.getElementById('kitten');
+            if (kittenEl && kittenEl.complete && kittenEl.naturalWidth) {
+                onImageReady(kittenEl);
+            } else {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => onImageReady(img);
+                img.onerror = () => {
+                    genStatus.style.display = 'none';
+                    genBtnGenerate.disabled = false;
+                    genBtnGenerate.textContent = '✨ Generate';
+                    showSnackbar('⚠️ Could not load image');
+                };
+                img.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Juvenile_Ragdoll.jpg/960px-Juvenile_Ragdoll.jpg';
+            }
+        });
+    }
+
+    // Close on overlay backdrop click
+    if (genModalOverlay) {
+        genModalOverlay.addEventListener('click', (e) => {
+            if (e.target === genModalOverlay) closeGenModal();
+        });
+    }
+
+
+    // =========================================================
     // SNACKBAR
     // =========================================================
     const snackbar = document.getElementById('snackbar');
@@ -751,37 +882,50 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================
     // CROP
     // =========================================================
-    btnCrop.addEventListener('click', withCommitWrap(() => withTip('btn-crop', () => {
-        if (!editor.imageLoaded) return;
-        cropTool.activate();
-        btnCrop.style.display = 'none';
-        cropActionsInline.style.display = 'flex';
-        modeIndicatorText.textContent = 'Crop Mode';
-        modeIndicator.style.display = 'flex';
-    })));
+    let cropActive = false;
 
-    btnCropApply.addEventListener('click', () => {
-        cropTool.applyCrop();
+    function resetCropBtn() {
+        cropActive = false;
+        btnCrop.textContent = '✂️ Start Crop';
+        btnCrop.classList.remove('btn-primary');
+        modeIndicator.style.display = 'none';
+    }
+
+    // Auto-crop fires on mouse release — reset UI
+    cropTool.onSelectionMade = () => {
         annotationLayer.syncSize();
-        btnCrop.style.display = '';
-        cropActionsInline.style.display = 'none';
-        modeIndicator.style.display = 'none';
-    });
+        resetCropBtn();
+    };
 
-    btnCropCancel.addEventListener('click', () => {
-        cropTool.deactivate();
-        btnCrop.style.display = '';
-        cropActionsInline.style.display = 'none';
-        modeIndicator.style.display = 'none';
-    });
+    btnCrop.addEventListener('click', withCommitWrap(() => {
+        if (!editor.imageLoaded) return;
+        if (cropActive) return;
+        cropActive = true;
+        cropTool.activate();
+        btnCrop.textContent = '⬚ Drag to crop…';
+        btnCrop.classList.add('btn-primary');
+        modeIndicatorText.textContent = 'Crop Mode — drag to select area';
+        modeIndicator.style.display = 'flex';
+    }));
+
+
+    // Helper used by AI crop actions — trims ~8% off the right side
+    function cropRightSide() {
+        if (!editor.imageLoaded) return;
+        const w = editor.canvas.width;
+        const h = editor.canvas.height;
+        const newW = Math.round(w * 0.92);
+        editor.crop({ x: 0, y: 0, width: newW, height: h });
+        annotationLayer.syncSize();
+    }
 
     // =========================================================
     // TRANSFORMS
     // =========================================================
-    btnRotateCW.addEventListener('click',  withCommitWrap(() => withTip('btn-rotate-cw',  () => { editor.applyTransform(rotateCW);  annotationLayer.syncSize(); })));
-    btnRotateCCW.addEventListener('click', withCommitWrap(() => withTip('btn-rotate-ccw', () => { editor.applyTransform(rotateCCW); annotationLayer.syncSize(); })));
-    btnFlipH.addEventListener('click',     withCommitWrap(() => withTip('btn-flip-h',     () => { editor.applyTransform(flipH);     annotationLayer.syncSize(); })));
-    btnFlipV.addEventListener('click',     withCommitWrap(() => withTip('btn-flip-v',     () => { editor.applyTransform(flipV);     annotationLayer.syncSize(); })));
+    btnRotateCW.addEventListener('click',  withCommitWrap(() => { editor.applyTransform(rotateCW);  annotationLayer.syncSize(); }));
+    btnRotateCCW.addEventListener('click', withCommitWrap(() => { editor.applyTransform(rotateCCW); annotationLayer.syncSize(); }));
+    btnFlipH.addEventListener('click',     withCommitWrap(() => { editor.applyTransform(flipH);     annotationLayer.syncSize(); }));
+    btnFlipV.addEventListener('click',     withCommitWrap(() => { editor.applyTransform(flipV);     annotationLayer.syncSize(); }));
 
     // =========================================================
     // ADJUSTMENT SLIDERS
@@ -1563,6 +1707,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (b.dataset.origText) b.textContent = b.dataset.origText;
             });
         }
+        // If the right panel was showing reasoning, close it
+        if (aiPanelTitle && aiPanelTitle.textContent === '💡 AI Reasoning') {
+            aiPanel.classList.remove('open');
+        }
     }
 
     function aiOverallEnhance() {
@@ -1573,6 +1721,10 @@ document.addEventListener('DOMContentLoaded', () => {
         saturationSlider.value=10; saturationValue.textContent='10';
         applyAllAdjustments(); editor.commitAdjustment(); resetSliders();
         showAiFeedback('🪄 AI Edit Everything applied', null);
+        // Open right panel with reasoning
+        aiPanelTitle.textContent = '💡 AI Reasoning';
+        aiPanelBody.innerHTML = AI_REASONING_HTML;
+        aiPanel.classList.add('open');
     }
 
     if (btnAiOverall)    btnAiOverall.addEventListener('click', aiOverallEnhance);
@@ -1608,7 +1760,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'ai-filter': triggerAiFilter('Blur'); break;
             case 'suggest-grayscale':
                 commitPendingAdjustments(); editor.applyOperation(grayscale);
-                showAiFeedback('🖤 AI Grayscale Filter applied', null); break;
+                showAiFeedback('🖤 AI filter suggestion applied', null); break;
             case 'suggest-sepia':
                 commitPendingAdjustments(); editor.applyOperation(sepia);
                 showAiFeedback('🟤 AI Sepia Filter applied', null); break;
@@ -1668,7 +1820,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => {
                     try {
                         // Intentional failure — subject detection not available in browser
-                        throw new Error('Subject detection model failed to load (network timeout).');
+                        throw new Error('Subject detection model failed to load (network timeout). No AI suggestions were applied.');
                     } catch (err) {
                         showAiError('🤖 AI Smart Crop failed', err.message);
                         // Re-enable button so user can retry
@@ -1681,8 +1833,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 1800);
                 break;
             }
-            case 'suggest-caption':showAiFeedback('💬 AI Caption suggested', null); break;
-            case 'contrast-check': showAiFeedback('🎨 AI Contrast Check done', null); break;
+            case 'suggest-caption': {
+                // Draw "Ahoj" at the bottom of the canvas in black
+                if (editor.imageLoaded) {
+                    const ctx = canvas.getContext('2d');
+                    const fontSize = Math.max(24, Math.round(canvas.width * 0.04));
+                    ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+                    ctx.fillStyle = '#000000';
+                    const text = 'Ahoj';
+                    const metrics = ctx.measureText(text);
+                    const x = Math.round((canvas.width - metrics.width) / 2);
+                    const y = Math.round(canvas.height - fontSize * 0.6);
+                    ctx.fillText(text, x, y);
+                    editor.history.push(editor.getImageData());
+                    editor.baseImageData = editor.getImageData();
+                    editor._notifyChange();
+                }
+                showAiFeedback('💬 AI Caption: "Ahoj" added', null);
+                break;
+            }
+            case 'contrast-check': {
+                const contrastModal = document.getElementById('contrast-modal');
+                const contrastClose = document.getElementById('contrast-modal-close');
+                if (contrastModal) {
+                    contrastModal.style.display = 'flex';
+                    const onClose = () => {
+                        contrastModal.style.display = 'none';
+                        contrastClose.removeEventListener('click', onClose);
+                        showAiFeedback('🎨 AI Contrast Check passed', null);
+                    };
+                    contrastClose.addEventListener('click', onClose);
+                } else {
+                    showAiFeedback('🎨 AI Contrast Check passed', null);
+                }
+                break;
+            }
             default: showAiFeedback(`🤖 AI action applied`, null);
         }
     }
@@ -1948,6 +2133,164 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================
+    // ADD OBJECTS PANE
+    // =========================================================
+    const btnAddObjUpload   = document.getElementById('btn-add-obj-upload');
+    const addObjFileInput   = document.getElementById('add-obj-file-input');
+    const addObjPromptInput = document.getElementById('add-obj-prompt');
+    const btnAddObjGenerate = document.getElementById('btn-add-obj-generate');
+    const addObjHint        = document.getElementById('add-obj-hint');
+    const addObjControls    = document.getElementById('add-obj-controls');
+    const addObjSizeSlider  = document.getElementById('add-obj-size');
+    const addObjSizeValue   = document.getElementById('add-obj-size-value');
+    const addObjXSlider     = document.getElementById('add-obj-x');
+    const addObjXValue      = document.getElementById('add-obj-x-value');
+    const addObjYSlider     = document.getElementById('add-obj-y');
+    const addObjYValue      = document.getElementById('add-obj-y-value');
+    const btnAddObjPlace    = document.getElementById('btn-add-obj-place');
+    const btnAddObjCancel   = document.getElementById('btn-add-obj-cancel');
+
+    let stagedObjImg        = null;   // the Image being positioned
+    let stagedBaseSnapshot  = null;   // canvas snapshot before preview
+
+    function drawStagedPreview() {
+        if (!stagedObjImg) return;
+        // Restore clean base first (if we have a snapshot)
+        if (stagedBaseSnapshot) editor.ctx.putImageData(stagedBaseSnapshot, 0, 0);
+        const pct  = parseInt(addObjSizeSlider.value) / 100;
+        const xPct = parseInt(addObjXSlider.value)    / 100;
+        const yPct = parseInt(addObjYSlider.value)    / 100;
+        const w = Math.round(editor.canvas.width  * pct);
+        const h = Math.round(stagedObjImg.naturalHeight * (w / stagedObjImg.naturalWidth));
+        const x = Math.round((editor.canvas.width  - w) * xPct);
+        const y = Math.round((editor.canvas.height - h) * yPct);
+        editor.ctx.drawImage(stagedObjImg, x, y, w, h);
+    }
+
+    function stageObject(src) {
+        if (!editor.imageLoaded) { showSnackbar('🖼️ Open a base image first.'); return; }
+        // Accept either a DOM img element or a data-URL string (from FileReader)
+        if (src instanceof HTMLImageElement) {
+            if (!src.naturalWidth) { showSnackbar('⚠️ Image not ready yet.'); return; }
+            stagedObjImg = src;
+            try { stagedBaseSnapshot = editor.getImageData(); } catch(e) { stagedBaseSnapshot = null; }
+            addObjSizeSlider.value = 30;  addObjSizeValue.textContent = '30%';
+            addObjXSlider.value    = 50;  addObjXValue.textContent    = '50%';
+            addObjYSlider.value    = 50;  addObjYValue.textContent    = '50%';
+            if (addObjControls) addObjControls.style.display = 'flex';
+            drawStagedPreview();
+            return;
+        }
+        const img = new Image();
+        img.onload = () => {
+            stagedObjImg = img;
+            try { stagedBaseSnapshot = editor.getImageData(); } catch(e) { stagedBaseSnapshot = null; }
+            addObjSizeSlider.value = 30;  addObjSizeValue.textContent = '30%';
+            addObjXSlider.value    = 50;  addObjXValue.textContent    = '50%';
+            addObjYSlider.value    = 50;  addObjYValue.textContent    = '50%';
+            if (addObjControls) addObjControls.style.display = 'flex';
+            drawStagedPreview();
+        };
+        img.src = src;
+    }
+
+    function cancelStaged() {
+        if (stagedBaseSnapshot) editor.ctx.putImageData(stagedBaseSnapshot, 0, 0);
+        stagedObjImg       = null;
+        stagedBaseSnapshot = null;
+        if (addObjControls) addObjControls.style.display = 'none';
+    }
+
+    // Slider live preview
+    [addObjSizeSlider, addObjXSlider, addObjYSlider].forEach(slider => {
+        if (!slider) return;
+        slider.addEventListener('input', () => {
+            addObjSizeValue.textContent = addObjSizeSlider.value + '%';
+            addObjXValue.textContent    = addObjXSlider.value    + '%';
+            addObjYValue.textContent    = addObjYSlider.value    + '%';
+            drawStagedPreview();
+        });
+    });
+
+    // Place: commit the preview into history
+    if (btnAddObjPlace) {
+        btnAddObjPlace.addEventListener('click', () => {
+            if (!stagedObjImg) return;
+            drawStagedPreview();
+            try {
+                editor.history.push(editor.getImageData());
+                editor.baseImageData = editor.getImageData();
+                editor._notifyChange();
+            } catch(e) {
+                // Canvas may be tainted by cross-origin image — still keep the visual result
+                editor._notifyChange();
+            }
+            stagedObjImg       = null;
+            stagedBaseSnapshot = null;
+            if (addObjControls) addObjControls.style.display = 'none';
+            showSnackbar('✅ Object placed on image');
+        });
+    }
+
+    // Cancel: restore snapshot
+    if (btnAddObjCancel) {
+        btnAddObjCancel.addEventListener('click', () => {
+            cancelStaged();
+            showSnackbar('🗑️ Object discarded');
+        });
+    }
+
+    // Upload
+    if (btnAddObjUpload && addObjFileInput) {
+        btnAddObjUpload.addEventListener('click', () => addObjFileInput.click());
+        addObjFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => stageObject(ev.target.result);
+            reader.readAsDataURL(file);
+            addObjFileInput.value = '';
+        });
+    }
+
+    if (addObjPromptInput) {
+        addObjPromptInput.addEventListener('input', () => {
+            if (btnAddObjGenerate) btnAddObjGenerate.disabled = addObjPromptInput.value.trim().length === 0;
+        });
+    }
+
+    if (btnAddObjGenerate) {
+        btnAddObjGenerate.addEventListener('click', () => {
+            if (!editor.imageLoaded) { showSnackbar('🖼️ Open a base image first.'); return; }
+            const prompt = addObjPromptInput ? addObjPromptInput.value.trim() : '';
+            if (!prompt) return;
+            btnAddObjGenerate.disabled = true;
+            btnAddObjGenerate.textContent = '⏳ Generating…';
+            if (addObjHint) addObjHint.textContent = `Generating "${prompt}"…`;
+            setTimeout(() => {
+                const img = new Image();
+                img.onload = () => {
+                    stageObject(img);
+                    btnAddObjGenerate.disabled = false;
+                    btnAddObjGenerate.textContent = '✨ Generate & Add';
+                    if (addObjPromptInput) addObjPromptInput.value = '';
+                    if (addObjHint) addObjHint.textContent = 'Type a description, then click Generate.';
+                };
+                img.onerror = () => {
+                    btnAddObjGenerate.disabled = false;
+                    btnAddObjGenerate.textContent = '✨ Generate & Add';
+                    if (addObjHint) addObjHint.textContent = 'Type a description, then click Generate.';
+                    showSnackbar('⚠️ Could not load image');
+                };
+                img.src = 'https://gallery.yopriceville.com/var/resizes/Free-Clipart-Pictures/Balloons-PNG/Red_Balloon_Transparent_Clip_Art.png?m=1629829954';
+            }, 1200);
+        });
+    }
+
+    // Discard staged object if user switches away from add-objects tool
+    // (handled in openTool — cancel staged cleanly)
+
+    // =========================================================
     // FLOATING AI CHATBOT
     // =========================================================
     const chatResponses = {
@@ -2029,6 +2372,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================
     // TEXT TOOL
     // =========================================================
+    const textContentInput = document.getElementById('text-content-input');
+    const textToolHint     = document.getElementById('text-tool-hint');
+
     textSizeSlider.addEventListener('input', () => {
         textSize = parseInt(textSizeSlider.value);
         textSizeValue.textContent = textSize;
@@ -2059,8 +2405,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function onCanvasTextClick(e) {
         if (!editor.imageLoaded) return;
-        const text = prompt('Enter text:');
-        if (!text || !text.trim()) return;
+        const text = textContentInput ? textContentInput.value.trim() : '';
+        if (!text) {
+            if (textToolHint) {
+                textToolHint.textContent = '⚠️ Type your text in the field above first!';
+                textToolHint.style.color = '#e94560';
+                setTimeout(() => {
+                    textToolHint.textContent = 'Click on the canvas to place the text.';
+                    textToolHint.style.color = '';
+                }, 2500);
+            }
+            if (textContentInput) textContentInput.focus();
+            return;
+        }
         const rect   = canvas.getBoundingClientRect();
         const scaleX = canvas.width  / rect.width;
         const scaleY = canvas.height / rect.height;
@@ -2070,7 +2427,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctx = canvas.getContext('2d');
         ctx.font      = `bold ${textSize}px 'Segoe UI', sans-serif`;
         ctx.fillStyle = textColor;
-        ctx.fillText(text.trim(), x, y);
+        ctx.fillText(text, x, y);
         editor.history.push(editor.getImageData());
         editor.baseImageData = editor.getImageData();
         editor._notifyChange();

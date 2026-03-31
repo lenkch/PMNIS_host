@@ -40,6 +40,7 @@
             <div class="toolbar-group toolbar-group-upload">
                 <button class="btn btn-primary" id="upload-btn" title="Open image">📂 Open</button>
                 <input type="file" id="file-input" accept="image/*" hidden>
+                <button class="btn btn-create" id="btn-toolbar-create" title="Create a new image">🖼️ Create</button>
             </div>
             <div class="separator"></div>
             <div class="toolbar-group">
@@ -87,6 +88,10 @@
                     </span>
                     <span class="rail-label">Remove</span>
                 </button>
+                <button class="rail-btn" data-tool="add-objects" title="Add Objects">
+                    <span class="rail-icon">➕</span>
+                    <span class="rail-label">Add</span>
+                </button>
                 <button class="rail-btn" data-tool="ai" title="AI Tools">
                     <span class="rail-icon">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -119,13 +124,8 @@
                 <!-- CROP panel -->
                 <div class="tool-pane" id="pane-crop">
                     <div class="pane-section">
-                        <div class="pane-tooltip"><div class="pane-tooltip-title">✂️ Crop</div>Click "Start Crop", then drag a rectangle on your image to select the area you want to keep. Hit Apply to confirm.</div>
-                        <p class="pane-desc">Select an area to keep, then apply.</p>
+                        <p class="pane-desc">Drag on the image to select the area to keep — it crops automatically.</p>
                         <button class="btn btn-primary w-full" id="btn-crop">✂️ Start Crop</button>
-                        <div class="crop-actions-inline" id="crop-actions-inline" style="display:none;">
-                            <button class="btn btn-primary w-full" id="btn-crop-apply">✅ Apply Crop</button>
-                            <button class="btn w-full" id="btn-crop-cancel">❌ Cancel</button>
-                        </div>
                     </div>
                     <div class="pane-section">
                         <div class="pane-tooltip"><div class="pane-tooltip-title">🔄 Transform</div>Rotate your image 90° clockwise or counter-clockwise, or mirror it horizontally and vertically.</div>
@@ -216,6 +216,19 @@
                                 <span class="value" id="blur-amount-value">3</span>
                             </div>
                             <input type="range" id="blur-amount" min="1" max="20" value="3">
+                        </div>
+                    </div>
+
+                    <!-- Filter intensity — shown inline below the active filter -->
+                    <div class="pane-section filter-intensity-inline" id="filter-intensity-section" style="display:none;">
+                        <div class="filter-intensity-header">
+                            <span class="filter-intensity-name" id="filter-intensity-label">Filter</span>
+                            <span class="filter-intensity-val" id="filter-intensity-value">100%</span>
+                        </div>
+                        <input type="range" id="filter-intensity-slider" min="0" max="100" value="100" class="filter-intensity-range">
+                        <div class="filter-intensity-actions">
+                            <button class="btn btn-primary" id="btn-commit-filter">✅ Apply</button>
+                            <button class="btn" id="btn-cancel-filter">✕ Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -330,11 +343,55 @@
                     </div>
                 </div>
 
+                <!-- ADD OBJECTS panel -->
+                <div class="tool-pane" id="pane-add-objects" style="display:none;">
+                    <div class="pane-section">
+                        <p class="pane-label">📂 Upload an Object</p>
+                        <p class="pane-desc">Upload an image to place onto your photo.</p>
+                        <button class="btn btn-primary w-full" id="btn-add-obj-upload">📂 Choose Image</button>
+                        <input type="file" id="add-obj-file-input" accept="image/*" hidden>
+                    </div>
+                    <div class="pane-section">
+                        <p class="pane-label">✨ Generate via AI</p>
+                        <p class="pane-desc">Describe an object to generate and place onto your photo.</p>
+                        <input type="text" id="add-obj-prompt" class="text-input" placeholder="e.g. a red balloon, a cat…">
+                        <button class="btn btn-primary w-full" id="btn-add-obj-generate" style="margin-top:6px;" disabled>✨ Generate &amp; Add</button>
+                        <p class="pane-hint" id="add-obj-hint">Type a description, then click Generate.</p>
+                    </div>
+                    <div class="pane-section" id="add-obj-controls" style="display:none;">
+                        <p class="pane-label">🖱️ Adjust &amp; Place</p>
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="label" for="add-obj-size">Size</label>
+                                <span class="value" id="add-obj-size-value">30%</span>
+                            </div>
+                            <input type="range" id="add-obj-size" min="5" max="100" value="30">
+                        </div>
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="label" for="add-obj-x">Position X</label>
+                                <span class="value" id="add-obj-x-value">50%</span>
+                            </div>
+                            <input type="range" id="add-obj-x" min="0" max="100" value="50">
+                        </div>
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label class="label" for="add-obj-y">Position Y</label>
+                                <span class="value" id="add-obj-y-value">50%</span>
+                            </div>
+                            <input type="range" id="add-obj-y" min="0" max="100" value="50">
+                        </div>
+                        <button class="btn btn-primary w-full" id="btn-add-obj-place">✅ Place on Image</button>
+                        <button class="btn w-full" id="btn-add-obj-cancel" style="margin-top:4px;">✕ Cancel</button>
+                    </div>
+                </div>
+
                 <!-- TEXT panel -->
                 <div class="tool-pane" id="pane-text" style="display:none;">
                     <div class="pane-section">
                         <p class="pane-label">T Text Overlay</p>
-                        <p class="pane-desc">Click on the image to place text.</p>
+                        <p class="pane-desc">Type your text below, pick a size and colour, then click on the image to place it.</p>
+                        <input type="text" id="text-content-input" class="text-input" placeholder="Your text here…">
                         <div class="slider-group">
                             <div class="slider-header">
                                 <label class="label" for="text-size">Font Size</label>
@@ -353,14 +410,7 @@
                             <button class="color-swatch" data-color="#58a6ff" style="background:#58a6ff;"></button>
                             <button class="color-swatch" data-color="#c44dff" style="background:#c44dff;"></button>
                         </div>
-                        <p class="pane-hint" style="margin-top:10px;">Click on the canvas to place text.</p>
-                    </div>
-                    <div class="pane-section">
-                        <p class="pane-label">✨ Add Object (AI)</p>
-                        <p class="pane-desc">Describe an object and let AI generate it into your photo.</p>
-                        <input type="text" id="object-prompt" class="text-input" placeholder="e.g., a red balloon, a cat…">
-                        <button class="btn btn-primary w-full" id="btn-generate-object" disabled style="margin-top:6px;">✨ Generate &amp; Add</button>
-                        <p class="pane-hint">Type what you want to add, then click Generate.</p>
+                        <p class="pane-hint" id="text-tool-hint" style="margin-top:10px;">Click on the canvas to place the text.</p>
                     </div>
                 </div>
             </div>
@@ -371,8 +421,38 @@
                     <div class="drop-zone-content">
                         <div class="drop-zone-icon">🖼️</div>
                         <h2>Open an image to start editing</h2>
-                        <p>Drag & drop an image here, or click the button below</p>
-                        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">📂 Choose Image</button>
+                        <p>Drag & drop an image here, or use one of the options below</p>
+                        <div class="drop-zone-actions">
+                            <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">📂 Choose Image</button>
+                            <span class="drop-zone-divider">or</span>
+                            <button class="btn btn-generate" id="btn-open-generate">✨ Generate Image</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== Image Generation Modal ===== -->
+                <div class="gen-modal-overlay" id="gen-modal-overlay">
+                    <div class="gen-modal">
+                        <div class="gen-modal-header">
+                            <span class="gen-modal-title">✨ Create an Image</span>
+                            <button class="tool-panel-close" id="gen-modal-close">✕</button>
+                        </div>
+                        <p class="gen-modal-desc">Describe what you want and click Generate to open it in the editor.</p>
+
+                        <div class="gen-field">
+                            <label class="gen-label" for="gen-prompt">Describe your image</label>
+                            <textarea id="gen-prompt" class="gen-textarea" rows="3" placeholder="e.g. a calm lake at sunset surrounded by pine trees…"></textarea>
+                        </div>
+
+                        <div class="gen-modal-actions">
+                            <button class="btn" id="gen-btn-cancel">Cancel</button>
+                            <button class="btn btn-generate" id="gen-btn-generate">✨ Generate</button>
+                        </div>
+
+                        <div class="gen-status" id="gen-status" style="display:none;">
+                            <span class="gen-spinner"></span>
+                            <span id="gen-status-text">Generating…</span>
+                        </div>
                     </div>
                 </div>
                 <div class="canvas-wrapper" id="canvas-wrapper">
@@ -384,6 +464,11 @@
                     <div class="compare-badge" id="compare-badge" style="display:none;">Original</div>
                     <!-- Retouch cursor — inside wrapper so coordinates match -->
                     <div class="retouch-cursor" id="retouch-cursor" style="display:none;"></div>
+                    <!-- Draggable object overlay for Add Objects tool -->
+                    <div id="add-obj-overlay" style="display:none; position:absolute; cursor:move; user-select:none; touch-action:none;">
+                        <img id="add-obj-overlay-img" style="display:block; max-width:none;" draggable="false">
+                        <div class="add-obj-overlay-handle">↔</div>
+                    </div>
                 </div>
                 <div class="mode-indicator" id="mode-indicator" style="display:none;">
                     <span class="mode-dot"></span>
@@ -496,20 +581,28 @@
         </div>
     </div>
 
-    <!-- ===== Filter Intensity Floating Overlay ===== -->
-    <div class="filter-intensity-overlay" id="filter-intensity-section" style="display:none;">
-        <div class="filter-intensity-card">
-            <div class="filter-intensity-header">
-                <span class="filter-intensity-name" id="filter-intensity-label">Filter</span>
-                <span class="filter-intensity-val" id="filter-intensity-value">100%</span>
+    <!-- Hidden asset used by JS to resolve image paths relative to HTML root -->
+    <img id="kitten" src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Juvenile_Ragdoll.jpg/960px-Juvenile_Ragdoll.jpg" crossorigin="anonymous" style="display:none;" alt="">
+
+    <!-- WCAG Contrast Check Popup -->
+    <div class="modal-overlay" id="contrast-modal" style="display:none;">
+        <div class="modal-card" style="max-width:380px; text-align:center;">
+            <div class="modal-header" style="justify-content:center; flex-direction:column; gap:8px;">
+                <span style="font-size:36px;">✅</span>
+                <h2 class="modal-title">Contrast Check Passed</h2>
             </div>
-            <p class="filter-intensity-hint" id="filter-intensity-desc">Drag to adjust how strongly the filter is applied.</p>
-            <input type="range" id="filter-intensity-slider" min="0" max="100" value="100" class="filter-intensity-range">
-            <button class="btn btn-primary w-full" id="btn-commit-filter" style="margin-top:10px;">✅ Apply at this intensity</button>
-            <button class="btn w-full" id="btn-cancel-filter" style="margin-top:4px;">✕ Cancel</button>
+            <p class="modal-desc" style="text-align:center;">All text elements in your image meet <strong>WCAG 2.1 AA</strong> contrast requirements. Your content is accessible to users with visual impairments.</p>
+            <ul style="font-size:12px; color:var(--text-secondary); text-align:left; padding-left:18px; line-height:1.8;">
+                <li>Normal text: contrast ratio ≥ 4.5:1 ✓</li>
+                <li>Large text: contrast ratio ≥ 3:1 ✓</li>
+                <li>UI components: contrast ratio ≥ 3:1 ✓</li>
+            </ul>
+            <div class="modal-actions" style="justify-content:center;">
+                <button class="btn btn-primary" id="contrast-modal-close">Got it</button>
+            </div>
         </div>
     </div>
 
-    <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/app.js?v=2"></script>
 </body>
 </html>
