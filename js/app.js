@@ -493,7 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <li>🖤 <strong>Grayscale</strong> — low colour variance detected, B&W will improve impact</li>
                         <li>🟤 <strong>Vintage Sepia</strong> — warm tones in your photo suit a retro palette</li>
                     </ul>
-                    <button class="ai-suggestion-apply w-full" data-ai-action="suggest-grayscale">Apply Suggestion</button>
+                    <button class="ai-suggestion-apply w-full" id="btn-ai-suggest-grayscale" data-ai-action="suggest-grayscale">Apply Suggestion</button>
                 </div>
                 <div class="ai-suggestion-card">
                     <div class="ai-suggestion-intro">For a modern editorial style I suggest:</div>
@@ -501,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <li>🌊 <strong>Cool tone</strong> — blue-shift trending in fashion photography</li>
                         <li>🌫️ <strong>Fade</strong> — soft matte finish popular on social media</li>
                     </ul>
-                    <button class="ai-suggestion-apply w-full" data-ai-action="ai-filter">Apply Style</button>
+                    <button class="ai-suggestion-apply w-full" id="btn-ai-filter-suggestion" data-ai-action="ai-filter">Apply Style</button>
                 </div>`
         },
         retouch: {
@@ -1071,6 +1071,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return new ImageData(d, imageData.width, imageData.height);
     }
+    function applyCoolFade(imageData) {
+        return applyFade(applyCool(imageData));
+    }
     function applyVividFilter(imageData) {
         return applySaturation(imageData, 50);
     }
@@ -1360,9 +1363,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================
     const AI_FILTERS = [
         { name:'Grayscale', rawFn:grayscale, rawArgs:[],  reason:'Low colour variance detected.',  effect:'Removes all colour.', confidence:'87%' },
-        { name:'Sepia',     rawFn:sepia,     rawArgs:[],  reason:'Warm tones present.',             effect:'Warm brownish tone.',  confidence:'74%' },
-        { name:'Invert',    rawFn:invert,    rawArgs:[],  reason:'High contrast detected.',         effect:'Flips colours.',       confidence:'61%' },
-        { name:'Blur',      rawFn:blur,      rawArgs:[3], reason:'High noise detected.',            effect:'Soft blur.',           confidence:'79%' },
+        { name:'Sepia',     rawFn:sepia,     rawArgs:[],  reason:'Warm tones present.',             effect:'Warm brownish tone.', confidence:'74%' },
+        { name:'Invert',    rawFn:invert,    rawArgs:[],  reason:'High contrast detected.',         effect:'Flips colours.',      confidence:'61%' },
+        { name:'Cool Fade', rawFn:applyCoolFade, rawArgs:[], reason:'Modern editorial style requested.', effect:'Cool tone with a soft matte fade.', confidence:'83%' },
     ];
 
     const filterAiResult       = document.getElementById('filter-ai-result');
@@ -1726,7 +1729,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnAiOverall)    btnAiOverall.addEventListener('click', aiOverallEnhance);
     if (btnAiAdjustCat)  btnAiAdjustCat.addEventListener('click',  () => handleAiAction('auto-enhance'));
-    if (btnAiFilterCat)  btnAiFilterCat.addEventListener('click',  () => triggerAiFilter('Blur'));
+    if (btnAiFilterCat)  btnAiFilterCat.addEventListener('click',  () => triggerAiFilter('Cool Fade'));
     if (btnAiCropCat)    btnAiCropCat.addEventListener('click',    () => handleAiAction('crop-thirds'));
     if (btnAiRetouchCat) btnAiRetouchCat.addEventListener('click', () => handleAiAction('auto-heal'));
 
@@ -1754,7 +1757,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 applyAllAdjustments(); editor.commitAdjustment(); resetSliders();
                 showAiFeedback('🎨 AI Vivid Colours applied', null);
                 break;
-            case 'ai-filter': triggerAiFilter('Blur'); break;
+            case 'ai-filter': triggerAiFilter('Cool Fade'); break;
             case 'suggest-grayscale':
                 commitPendingAdjustments(); editor.applyOperation(grayscale);
                 showAiFeedback('🖤 AI filter suggestion applied', null); break;

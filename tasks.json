@@ -1,0 +1,48 @@
+[
+  {
+    "description": "[Impressions] Prosím, otvor aplikáciu na úpravu fotografií a pár minút si ju prezri.",
+    "type": "do",
+    "maxTime": 60
+  },
+  {
+    "description": "[Motivational] Vlož fotku do aplikácie a orež ju.",
+    "type": "do",
+    "maxTime": 60
+  },
+  {
+    "description": "[US01] Uprav fotku cez aplikáciu filtra.",
+    "type": "do",
+    "endElement": "#btn-fade",
+    "maxTime": 60
+  },
+  {
+    "description": "[US02] Použi návrh filtra od AI.",
+    "type": "do",
+    "endElement": "#btn-ai-filter-suggestion",
+    "maxTime": 60
+  },
+  {
+    "description": "[US03] Fotka sa Vám nechce upravovať. Využite kompletnú úpravu fotkou cez AI.",
+    "type": "do",
+    "endElement": "#btn-ai-overall",
+    "maxTime": 60
+  },
+  {
+    "description": "[US04] Zvoľte možnosť úpravy filtra cez AI. Úprava sa Vám ale nepáči. Adminom by ste zanechali spätnú väzbu o nesprávnej funkcionalite.",
+    "type": "do",
+    "endElement": ".ai-feedback-reason-btn",
+    "maxTime": 120
+  },
+  {
+    "description": "[US05] Fotka má rôzne objekty, ktoré chcete odstrániť. Vymažte ich.",
+    "type": "do",
+    "endElement": "#btn-remove-object",
+    "maxTime": 180
+  },
+  {
+    "description": "[US06] Chcete vygenerovať fotku mačičky a do nej pridať obrázok červeného balóna.",
+    "type": "do",
+    "endElement": "#btn-add-obj-place",
+    "maxTime": 180
+  }
+]
