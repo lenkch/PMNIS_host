@@ -336,6 +336,23 @@ body {
     color: var(--text-secondary); font-weight: 600;
     padding-bottom: 6px; border-bottom: 1px solid var(--border);
 }
+.ai-suggestion-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.ai-suggestion-section + .ai-suggestion-section {
+    margin-top: 2px;
+}
+.ai-suggestion-section-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.ai-right-suggestion-detail {
+    width: 100%;
+    text-align: left;
+}
 .selection-list {
     list-style: none;
     margin: 6px 0 0;

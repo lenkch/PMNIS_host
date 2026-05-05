@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PhotoEdit — Photo Editor</title>
     <link rel="stylesheet" href="css/styles.css">
+
+    <style>
+        .ai-accordion-list{display:flex;flex-direction:column;gap:10px;}
+        .ai-dropdown{border:1px solid rgba(132,156,255,.25);border-radius:10px;background:rgba(255,255,255,.035);overflow:hidden;}
+        .ai-dropdown-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer;text-align:left;}
+        .ai-dropdown-toggle:hover{background:rgba(132,156,255,.12);}
+        .ai-dropdown-left{display:flex;align-items:center;gap:10px;}
+        .ai-dropdown-chevron{transition:transform .2s ease;}
+        .ai-dropdown.open .ai-dropdown-chevron{transform:rotate(180deg);}
+        .ai-dropdown-body{display:none;padding:0 12px 12px;}
+        .ai-dropdown.open .ai-dropdown-body{display:block;}
+        .ai-fake-loading{display:flex;align-items:center;gap:8px;padding:12px;color:#9fb0d8;font-size:12px;}
+        .ai-loader-dot{width:8px;height:8px;border-radius:50%;background:#8aa2ff;animation:aiPulse .8s infinite alternate;}
+        @keyframes aiPulse{from{opacity:.35;transform:scale(.8)}to{opacity:1;transform:scale(1.2)}}
+        .ai-dropdown-body .ai-suggestion-card{margin-top:10px;}
+    </style>
 </head>
 <body>
     <!-- ===== Welcome / Role Screen ===== -->
@@ -319,27 +335,6 @@
                             <span class="ai-big-label">AI Edit Everything</span>
                             <span class="ai-big-desc">Auto-enhance the full photo</span>
                         </button>
-                    </div>
-                    <div class="pane-section">
-                        <div class="pane-tooltip"><div class="pane-tooltip-title">🤖 AI by Category</div>Target a specific area: AI Adjust optimises light and colour, AI Filter picks the best style filter, AI Crop suggests the ideal framing, AI Retouch cleans up imperfections.</div>
-                        <p class="pane-label">AI by Category</p>
-                        <div class="ai-btn-list">
-                            <button class="ai-cat-btn" id="btn-ai-adjust">
-                                <span>🎨</span><span class="ai-cat-label">AI Adjust</span>
-                            </button>
-                            <button class="ai-cat-btn" id="btn-ai-filter">
-                                <span>✨</span><span class="ai-cat-label">AI Filter</span>
-                            </button>
-                            <button class="ai-cat-btn" id="btn-ai-crop">
-                                <span>✂️</span><span class="ai-cat-label">AI Crop</span>
-                            </button>
-                            <button class="ai-cat-btn" id="btn-ai-retouch-btn">
-                                <span>🪄</span><span class="ai-cat-label">AI Retouch</span>
-                            </button>
-                        </div>
-                        <div class="filter-ai-result" id="filter-ai-result" style="display:none;">
-                            <div class="filter-ai-applied" id="filter-ai-applied-label"></div>
-                        </div>
                     </div>
                     <div class="pane-section">
                         <p class="pane-label">💬 What do you want to change?</p>

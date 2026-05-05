@@ -38,28 +38,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // sub:0 = left pane, sub:1 = right AI panel
     const TOUR_STEPS = [
         {
-            targetId: 'pane-crop',    aiId: 'ai-panel', tool: 'crop',
+            targetId: 'pane-crop',    aiId: null, tool: 'crop',
             leftTitle: '✂️ Crop & Transform', leftText: 'Crop your photo to any area, or rotate and flip it. Click "Start Crop", drag on the image, then Apply.',
-            rightTitle: 'AI Panel — available everywhere',
-            rightText: 'Each section has an AI panel on the right like this one. It offers smart suggestions specific to that tool — from auto-enhancing adjustments to picking filters, suggesting crops, healing blemishes or removing objects. Look for it whenever you want a helping hand.'
+            rightTitle: null, rightText: null
         },
         {
-            targetId: 'pane-adjust',  aiId: 'ai-panel', tool: 'adjust',
+            targetId: 'pane-adjust',  aiId: null, tool: 'adjust',
             leftTitle: '🎨 Adjustments',  leftText: 'Drag sliders for brightness, contrast, saturation, exposure, highlights and shadows. Changes are previewed live.',
             rightTitle: null, rightText: null
         },
         {
-            targetId: 'pane-filters', aiId: 'ai-panel', tool: 'filters',
+            targetId: 'pane-filters', aiId: null, tool: 'filters',
             leftTitle: '✨ Filters',       leftText: 'Apply colour styles (Warm, Sepia…) or effects (Blur, Sharpen…). After applying, drag the Intensity slider to control strength.',
             rightTitle: null, rightText: null
         },
         {
-            targetId: 'pane-retouch', aiId: 'ai-panel', tool: 'retouch',
+            targetId: 'pane-retouch', aiId: null, tool: 'retouch',
             leftTitle: '🪄 Retouch',       leftText: 'Paint on the image to heal blemishes, smooth skin, or sharpen details. A circle cursor shows your brush size as you hover.',
             rightTitle: null, rightText: null
         },
         {
-            targetId: 'pane-objects', aiId: 'ai-panel', tool: 'objects',
+            targetId: 'pane-objects', aiId: null, tool: 'objects',
             leftTitle: '🗑️ Remove Objects', leftText: 'Select Rectangle, Ellipse or Freehand, draw around objects you want removed, then click Remove. You can mark multiple areas at once.',
             rightTitle: null, rightText: null
         },
@@ -69,12 +68,13 @@ document.addEventListener('DOMContentLoaded', () => {
             rightTitle: null, rightText: null
         },
         {
-            targetId: 'pane-ai',     aiId: null,        tool: 'ai',
+            targetId: 'pane-ai',     aiId: 'ai-panel',  tool: 'ai',
             leftTitle: '✦ AI Tools',      leftText: '"AI Edit Everything" improves your whole photo in one click. Or pick a specific AI action — Adjust, Filter, Crop or Retouch.',
-            rightTitle: null, rightText: null
+            rightTitle: 'AI Suggestions For This Photo',
+            rightText: 'This right panel appears in onboarding for AI Tools only. Click a suggestion name to preview what was applied and why.'
         },
         {
-            targetId: 'pane-text',   aiId: 'ai-panel', tool: 'text',
+            targetId: 'pane-text',   aiId: null, tool: 'text',
             leftTitle: 'T Text & Add Objects', leftText: 'Click on the image to place styled text. Or describe an object below and let AI generate and insert it into your photo.',
             rightTitle: null, rightText: null
         },
@@ -215,13 +215,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Open a tool during tour without toggling it closed if already open
-    function openToolForTour(tool) {
+    function openToolForTour(tool, stepConfig = null) {
         if (!tool || typeof openTool !== 'function') return;
         // If this tool is already active, just make sure panels are open
         if (activeTool === tool) {
             toolPanel.classList.add('open');
-            const aiContent = AI_PANEL_CONTENT[tool];
-            if (aiContent) aiPanel.classList.add('open');
+            if (stepConfig && stepConfig.tool === 'ai') {
+                aiPanel.classList.add('open');
+            } else {
+                aiPanel.classList.remove('open');
+            }
             return;
         }
         openTool(tool);
@@ -252,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tourBlocker) tourBlocker.classList.remove('hidden');
 
         // Open tool panels without risk of toggling them closed
-        openToolForTour(s.tool);
+        openToolForTour(s.tool, s);
 
         // Clear all highlights first
         document.querySelectorAll('.tour-highlight, .tour-highlight-soft').forEach(el => {
@@ -560,6 +563,329 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="ai-suggestion-desc">Want to fine-tune? Open <strong>Adjustments</strong> to tweak individual sliders, or <strong>Filters</strong> to add a colour style on top.</div>
         </div>`;
 
+    const AI_RIGHT_PANEL_SECTIONS = [
+        {
+            key: 'adjust',
+            title: '🎨 Adjust Suggestions',
+            suggestions: [
+                {
+                    id: 'adj-fresh-pop',
+                    name: 'Fresh & vibrant look',
+                    action: 'auto-enhance',
+                    appliedText: 'I increased brightness by +15, contrast by +20 and saturation by +10.',
+                    reasonText: 'The photo looked slightly flat (low mid-tone contrast), so this makes details pop while keeping colours natural.'
+                },
+                {
+                    id: 'adj-soft-light',
+                    name: 'Soft brighter mood',
+                    action: 'boost-brightness',
+                    appliedText: 'I increased brightness by +30 to lift dark areas.',
+                    reasonText: 'The image appeared underexposed in shadows, so this brightens it for a cleaner, lighter mood.'
+                },
+                {
+                    id: 'adj-color-pop',
+                    name: 'Color pop',
+                    action: 'vivid',
+                    appliedText: 'I increased saturation by +40 for stronger colour separation.',
+                    reasonText: 'The colour variance was muted, so boosting saturation helps the subject stand out.'
+                },
+            ]
+        },
+        {
+            key: 'filters',
+            title: '✨ Filter Suggestions',
+            suggestions: [
+                {
+                    id: 'flt-cool-cinematic',
+                    name: 'Cool cinematic look',
+                    action: 'ai-filter',
+                    appliedText: 'I applied a Cool Fade style (cooler tones + slight matte fade).',
+                    reasonText: 'This scene benefits from cooler shadows and softer highlights to create a cinematic look.'
+                },
+                {
+                    id: 'flt-black-white',
+                    name: 'Classic black & white',
+                    action: 'suggest-grayscale',
+                    appliedText: 'I removed colour and kept only luminance contrast.',
+                    reasonText: 'The photo has strong shape/texture contrast, so black-and-white makes the composition cleaner and bolder.'
+                },
+                {
+                    id: 'flt-retro-vibe',
+                    name: 'Retro vibe',
+                    action: 'suggest-sepia',
+                    appliedText: 'I applied a sepia tone to warm mid-tones and highlights.',
+                    reasonText: 'Warm tonal balance and softer contrast work well here for a nostalgic, vintage feel.'
+                },
+            ]
+        },
+        {
+            key: 'crop',
+            title: '✂️ Crop Suggestions',
+            suggestions: [
+                {
+                    id: 'crop-story-focus',
+                    name: 'Story-focused framing',
+                    action: 'crop-thirds',
+                    appliedText: 'I suggested a rule-of-thirds framing adjustment.',
+                    reasonText: 'The subject reads better when shifted off-center, improving visual balance and eye flow.'
+                },
+                {
+                    id: 'crop-social-square',
+                    name: 'Social square frame',
+                    action: 'crop-square',
+                    appliedText: 'I suggested a square composition for tighter framing.',
+                    reasonText: 'A square crop reduces empty space and works well for social-media style framing.'
+                },
+                {
+                    id: 'crop-clean-horizon',
+                    name: 'Straight horizon',
+                    action: 'auto-straighten',
+                    appliedText: 'I suggested a slight straighten correction to reduce tilt.',
+                    reasonText: 'The horizon appears a bit off-level, so straightening improves perceived stability.'
+                },
+            ]
+        },
+        {
+            key: 'retouch',
+            title: '🪄 Retouch Suggestions',
+            suggestions: [
+                {
+                    id: 'ret-cleanup',
+                    name: 'Quick clean-up',
+                    action: 'auto-heal',
+                    appliedText: 'I applied a light heal pass to small imperfections.',
+                    reasonText: 'Minor high-frequency spots were visible, so cleanup makes the image look cleaner without over-processing.'
+                },
+                {
+                    id: 'ret-smooth-portrait',
+                    name: 'Smooth portrait finish',
+                    action: 'portrait-smooth',
+                    appliedText: 'I applied gentle portrait smoothing (low-strength blur blend).',
+                    reasonText: 'Skin texture was slightly harsh, so smoothing improves polish while keeping key facial structure.'
+                },
+            ]
+        },
+        {
+            key: 'objects',
+            title: '🗑️ Remove Object Suggestions',
+            suggestions: [
+                {
+                    id: 'obj-remove-distractions',
+                    name: 'Remove distractions',
+                    action: 'detect-objects',
+                    appliedText: 'I detected likely distracting objects and marked them as removable selections.',
+                    reasonText: 'Edge and contour analysis found elements competing with the subject, so they were flagged for quick cleanup.'
+                },
+            ]
+        },
+        {
+            key: 'text',
+            title: '🔤 Text Suggestions',
+            suggestions: [
+                {
+                    id: 'txt-caption',
+                    name: 'Add a smart caption',
+                    action: 'suggest-caption',
+                    appliedText: 'I added a short caption suggestion on the image.',
+                    reasonText: 'Scene context was clear enough to propose a concise caption that matches the photo mood.'
+                },
+                {
+                    id: 'txt-contrast',
+                    name: 'Check text readability',
+                    action: 'contrast-check',
+                    appliedText: 'I ran a contrast accessibility check for visible text regions.',
+                    reasonText: 'Some backgrounds can reduce readability, so this verifies if text remains clearly legible.'
+                },
+            ]
+        },
+    ];
+
+    function applyAiSuggestionAction(action) {
+        if (!action) return;
+        if (action === 'warm') {
+            const result = applyWarm(editor.getImageData());
+            editor.putImageData(result);
+            editor.history.push(result);
+            editor.baseImageData = editor.getImageData();
+            editor._notifyChange();
+            return;
+        }
+        if (action === 'cool') {
+            const result = applyCool(editor.getImageData());
+            editor.putImageData(result);
+            editor.history.push(result);
+            editor.baseImageData = editor.getImageData();
+            editor._notifyChange();
+            return;
+        }
+        if (action === 'suggest-sharpen-prompt') {
+            const result = applySharpenFilter(editor.getImageData());
+            editor.putImageData(result);
+            editor.history.push(result);
+            editor.baseImageData = editor.getImageData();
+            editor._notifyChange();
+            return;
+        }
+        if (action === 'remove-bg-prompt') {
+            applyBackgroundRemoval();
+            return;
+        }
+        handleAiAction(action);
+    }
+
+    function renderAiRightPanel(overallInfoHtml = '') {
+        if (!aiPanelTitle || !aiPanelBody) return;
+
+        aiPanelTitle.textContent = 'AI Suggestions';
+        const sectionHtml = AI_RIGHT_PANEL_SECTIONS.map(section => {
+            return `
+                <div class="ai-suggestion-section">
+                    <div class="ai-section-label">${section.title}</div>
+                    <div class="ai-suggestion-section-body">
+                        ${section.suggestions.map(s => `
+                            <div class="ai-suggestion-card" data-ai-right-card="${s.id}">
+                                <button class="ai-suggestion-apply w-full" data-ai-right-suggestion="${s.id}" data-ai-right-section="${section.key}" data-ai-right-label="${s.name}">${s.name}</button>
+                                <div class="ai-right-suggestion-detail" data-ai-right-detail="${s.id}" data-ai-right-section-detail="${section.key}" style="display:none;"></div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        aiPanelBody.innerHTML = `${overallInfoHtml}${sectionHtml}`;
+        aiPanelBody.querySelectorAll('[data-ai-right-suggestion]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const suggestionId = btn.dataset.aiRightSuggestion;
+                const detailEl = aiPanelBody.querySelector(`[data-ai-right-detail="${suggestionId}"]`);
+                const suggestion = AI_RIGHT_PANEL_SECTIONS
+                    .flatMap(section => section.suggestions)
+                    .find(item => item.id === suggestionId);
+                if (!detailEl || !suggestion) return;
+                if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
+
+                const sectionKey = btn.dataset.aiRightSection;
+                const sectionBtns = aiPanelBody.querySelectorAll(`[data-ai-right-section="${sectionKey}"]`);
+                const sectionDetails = aiPanelBody.querySelectorAll(`[data-ai-right-section-detail="${sectionKey}"]`);
+                const sectionCards = aiPanelBody.querySelectorAll(`[data-ai-right-suggestion][data-ai-right-section="${sectionKey}"]`);
+
+                // Hide sibling suggestions immediately so they do not flash in disabled/applied state.
+                sectionCards.forEach(sectionBtn => {
+                    const card = sectionBtn.closest('.ai-suggestion-card');
+                    if (!card) return;
+                    card.style.display = sectionBtn === btn ? '' : 'none';
+                });
+
+                // Keep only the selected button locked during async analysis/apply.
+                btn.disabled = true;
+                detailEl.style.display = 'block';
+                detailEl.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:11px;">
+                        <span class="gen-spinner" style="width:14px; height:14px;"></span>
+                        <span>Analysing this image...</span>
+                    </div>
+                `;
+
+                setTimeout(() => {
+                    applyAiSuggestionAction(suggestion.action);
+                    detailEl.innerHTML = `
+                        <div class="ai-suggestion-desc" style="text-align:left; width:100%;"><strong>What was changed:</strong> ${suggestion.appliedText || 'Applied the selected suggestion.'}</div>
+                        <div class="ai-suggestion-desc" style="text-align:left; width:100%;"><strong>Reasoning:</strong> ${suggestion.reasonText || 'This setting matches the detected image characteristics.'}</div>
+                        <button class="btn btn-small" type="button" data-ai-right-undo="${suggestionId}" style="margin-top:6px;">↩ Undo this suggestion</button>
+                    `;
+                    btn.textContent = '✅ Applied';
+                    btn.classList.add('ai-applied');
+
+
+                    const undoBtn = detailEl.querySelector(`[data-ai-right-undo="${suggestionId}"]`);
+                    if (!undoBtn) return;
+                    undoBtn.addEventListener('click', () => {
+                        editor.undo();
+                        if (suggestion.action === 'detect-objects' && annotationLayer?.clearAll) {
+                            annotationLayer.clearAll();
+                            if (typeof updateRemoveActionsUI === 'function') updateRemoveActionsUI();
+                        }
+                        sectionBtns.forEach(sectionBtn => {
+                            sectionBtn.disabled = false;
+                            sectionBtn.classList.remove('ai-applied');
+                            sectionBtn.textContent = sectionBtn.dataset.aiRightLabel || sectionBtn.textContent;
+                        });
+                        // Restore all suggestions in this section after undo.
+                        sectionCards.forEach(sectionBtn => {
+                            const card = sectionBtn.closest('.ai-suggestion-card');
+                            if (card) card.style.display = '';
+                        });
+                        sectionDetails.forEach(sectionDetail => {
+                            sectionDetail.style.display = 'none';
+                            sectionDetail.innerHTML = '';
+                        });
+                        showSnackbar('↩️ Suggestion undone. You can pick another from this section.');
+                    });
+                }, 900);
+            });
+        });
+    }
+
+    const AI_TOUR_SUGGESTIONS = [
+        {
+            id: 'tone-balance',
+            name: 'Tone Balance Boost',
+            applied: 'Applied: Brightness +12, Contrast +14, Saturation +6',
+            why: 'Why: Mid-tones look slightly compressed, so this adds depth while preserving natural colour.'
+        },
+        {
+            id: 'subject-crop',
+            name: 'Subject Focus Crop',
+            applied: 'Applied: Rule-of-thirds crop with tighter framing around the subject',
+            why: 'Why: Subject placement and empty side space suggest a tighter composition for stronger focus.'
+        },
+        {
+            id: 'clean-portrait',
+            name: 'Clean Portrait Pass',
+            applied: 'Applied: Light skin smoothing with subtle blemish cleanup',
+            why: 'Why: Fine texture noise and small spot artifacts were detected in face regions.'
+        }
+    ];
+
+    function renderAiTourSuggestions() {
+        if (!aiPanelTitle || !aiPanelBody) return;
+
+        aiPanelTitle.textContent = 'AI Suggestions';
+        aiPanelBody.innerHTML = AI_TOUR_SUGGESTIONS.map(s => `
+            <div class="ai-suggestion-card" data-tour-card="${s.id}">
+                <button class="ai-suggestion-apply w-full" data-tour-suggestion="${s.id}">${s.name}</button>
+                <div class="ai-tour-result" data-tour-result="${s.id}" style="display:none; width:100%; text-align:left;"></div>
+            </div>
+        `).join('');
+
+        aiPanelBody.querySelectorAll('[data-tour-suggestion]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.tourSuggestion;
+                const suggestion = AI_TOUR_SUGGESTIONS.find(s => s.id === id);
+                const resultEl = aiPanelBody.querySelector(`[data-tour-result="${id}"]`);
+                if (!suggestion || !resultEl) return;
+
+                btn.disabled = true;
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:11px;">
+                        <span class="gen-spinner" style="width:14px; height:14px;"></span>
+                        <span>Analysing photo...</span>
+                    </div>
+                `;
+
+                setTimeout(() => {
+                    resultEl.innerHTML = `
+                        <div style="display:flex; flex-direction:column; gap:6px; font-size:11px; line-height:1.6;">
+                            <div style="color:var(--text-primary);"><strong>${suggestion.applied}</strong></div>
+                            <div style="color:var(--text-secondary);">${suggestion.why}</div>
+                        </div>
+                    `;
+                }, 900);
+            });
+        });
+    }
+
     // Objects remove tool state — declared here so openTool() can reference it
     let currentRemoveTool = 'rectangle';
     const REMOVE_INSTRUCTIONS = {
@@ -595,63 +921,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (editor.imageLoaded && !annotationLayer.active) annotationLayer.activate();
         }
 
-        const aiContent = AI_PANEL_CONTENT[tool];
-        if (aiContent && tool !== 'ai') {
-            aiPanelTitle.textContent = aiContent.title;
-            aiPanelBody.innerHTML = aiContent.html;
-            aiPanelBody.querySelectorAll('.ai-suggestion-apply[data-ai-action]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const action = btn.dataset.aiAction;
-                    const isReusable = ['detect-objects', 'smart-inpaint'].includes(action);
-
-                    handleAiAction(action);
-
-                    if (!isReusable) {
-                        // Mark applied and optionally collapse card
-                        btn.textContent = '✅ Applied';
-                        btn.disabled = true;
-                        btn.classList.add('ai-applied');
-
-                        const card = btn.closest('.ai-suggestion-card');
-                        if (card) {
-                            setTimeout(() => {
-                                card.style.transition = 'opacity 0.4s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease';
-                                card.style.opacity    = '0';
-                                card.style.maxHeight  = card.offsetHeight + 'px';
-                                requestAnimationFrame(() => requestAnimationFrame(() => {
-                                    card.style.maxHeight = '0';
-                                    card.style.overflow  = 'hidden';
-                                    card.style.marginBottom = '0';
-                                    card.style.paddingTop = '0';
-                                    card.style.paddingBottom = '0';
-                                }));
-                                setTimeout(() => {
-                                    card.remove();
-                                    const remaining = aiPanelBody.querySelectorAll('.ai-suggestion-card');
-                                    if (remaining.length === 0) {
-                                        aiPanelBody.innerHTML = `
-                                            <div class="ai-empty-state">
-                                                <div class="ai-empty-icon">✦</div>
-                                                <p class="ai-empty-title">All suggestions applied!</p>
-                                                <p class="ai-empty-desc">You've used all AI suggestions for this section.</p>
-                                            </div>`;
-                                    }
-                                }, 450);
-                            }, 1200);
-                        }
-                    } else {
-                        // Keep reusable objects suggestions available
-                        btn.classList.remove('ai-applied');
-                        btn.disabled = false;
-                        if (btn.dataset.origText) btn.textContent = btn.dataset.origText;
-                    }
-                });
-            });
+        // During onboarding, show right-side suggestions only in the AI Tools step.
+        const inTour = !tourOverlay.classList.contains('hidden');
+        if (tool === 'ai' && inTour) {
+            renderAiTourSuggestions();
             aiPanel.classList.add('open');
-        } else if (tool === 'ai' && usedAiActions.has('overall')) {
-            // AI Edit Everything was applied — reopen reasoning panel
-            aiPanelTitle.textContent = '💡 AI Reasoning';
-            aiPanelBody.innerHTML = AI_REASONING_HTML;
+        } else if (tool === 'ai') {
+            renderAiRightPanel(usedAiActions.has('overall') ? AI_REASONING_HTML : '');
             aiPanel.classList.add('open');
         } else {
             aiPanel.classList.remove('open');
@@ -1691,16 +1967,17 @@ document.addEventListener('DOMContentLoaded', () => {
             'crop-thirds':'btn-ai-crop','crop-square':'btn-ai-crop','auto-straighten':'btn-ai-crop',
             'auto-heal':'btn-ai-retouch-btn','portrait-smooth':'btn-ai-retouch-btn',
         };
+        // Category controls are dropdown toggles now, so keep them clickable after applying suggestions.
         const catId = catMap[action];
         if (catId && !isReusable) {
             const b = document.getElementById(catId);
-            if (b) { b.classList.add('ai-applied'); b.disabled = true; }
+            if (b) b.classList.add('ai-applied');
         }
     }
 
     function clearUsedAiActions() {
         usedAiActions.clear();
-        document.querySelectorAll('.ai-cat-btn.ai-applied, #btn-ai-overall.ai-applied').forEach(b => { b.classList.remove('ai-applied'); b.disabled = false; });
+        document.querySelectorAll('#btn-ai-overall.ai-applied').forEach(b => { b.classList.remove('ai-applied'); b.disabled = false; });
         if (aiPanelBody) {
             aiPanelBody.querySelectorAll('.ai-suggestion-apply.ai-applied').forEach(b => {
                 b.classList.remove('ai-applied'); b.disabled = false;
@@ -1715,23 +1992,112 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function aiOverallEnhance() {
         if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
-        commitPendingAdjustments();
-        brightnessSlider.value=15; brightnessValue.textContent='15';
-        contrastSlider.value=20;   contrastValue.textContent='20';
-        saturationSlider.value=10; saturationValue.textContent='10';
-        applyAllAdjustments(); editor.commitAdjustment(); resetSliders();
-        showAiFeedback('🪄 AI Edit Everything applied', null);
-        // Open right panel with reasoning
-        aiPanelTitle.textContent = '💡 AI Reasoning';
-        aiPanelBody.innerHTML = AI_REASONING_HTML;
+        if (btnAiOverall) btnAiOverall.disabled = true;
+        if (aiPanelTitle && aiPanelBody) {
+            aiPanelTitle.textContent = 'AI Suggestions';
+            aiPanelBody.innerHTML = `
+                <div class="ai-suggestion-card">
+                    <div style="display:flex; align-items:center; gap:8px; width:100%; color:var(--text-secondary); font-size:11px;">
+                        <span class="gen-spinner" style="width:14px; height:14px;"></span>
+                        <span>Analysing photo and applying full-scene edit...</span>
+                    </div>
+                </div>`;
+        }
+        aiPanel.classList.add('open');
+
+        setTimeout(() => {
+            commitPendingAdjustments();
+            brightnessSlider.value=15; brightnessValue.textContent='15';
+            contrastSlider.value=20;   contrastValue.textContent='20';
+            saturationSlider.value=10; saturationValue.textContent='10';
+            applyAllAdjustments(); editor.commitAdjustment(); resetSliders();
+            showAiFeedback('🪄 AI Edit Everything applied', null);
+            usedAiActions.add('overall');
+            if (btnAiOverall) {
+                btnAiOverall.disabled = false;
+                btnAiOverall.classList.add('ai-applied');
+            }
+            const explanation = `
+                <div class="ai-suggestion-card">
+                    <div class="ai-suggestion-intro">🪄 AI Edit Everything complete</div>
+                    <ul class="ai-reasoning-list" style="width:100%;">
+                        <li>☀️ <strong>Brightness +15</strong> to lift underexposed regions</li>
+                        <li>◑ <strong>Contrast +20</strong> to improve depth and separation</li>
+                        <li>🎨 <strong>Saturation +10</strong> to restore muted colours</li>
+                    </ul>
+                    <div class="ai-suggestion-desc" style="text-align:left; width:100%;">Why this happened: histogram and tone distribution indicate a slightly flat image, so AI applied a balanced global enhancement.</div>
+                </div>`;
+            renderAiRightPanel(explanation);
+        }, 1100);
+    }
+
+    if (btnAiOverall) btnAiOverall.addEventListener('click', aiOverallEnhance);
+
+    function openEmptyAiSidePanel() {
+        // Reserved right-side panel space for future AI explanation/details.
+        // Keep it intentionally empty for now.
+        if (!aiPanel || !aiPanelTitle || !aiPanelBody) return;
+        aiPanelTitle.textContent = '';
+        aiPanelBody.innerHTML = '';
         aiPanel.classList.add('open');
     }
 
-    if (btnAiOverall)    btnAiOverall.addEventListener('click', aiOverallEnhance);
-    if (btnAiAdjustCat)  btnAiAdjustCat.addEventListener('click',  () => handleAiAction('auto-enhance'));
-    if (btnAiFilterCat)  btnAiFilterCat.addEventListener('click',  () => triggerAiFilter('Cool Fade'));
-    if (btnAiCropCat)    btnAiCropCat.addEventListener('click',    () => handleAiAction('crop-thirds'));
-    if (btnAiRetouchCat) btnAiRetouchCat.addEventListener('click', () => handleAiAction('auto-heal'));
+    function bindAiSuggestionButtons(root) {
+        if (!root) return;
+        root.querySelectorAll('.ai-suggestion-apply[data-ai-action]').forEach(btn => {
+            if (btn.dataset.bound === 'true') return;
+            btn.dataset.bound = 'true';
+            btn.addEventListener('click', () => {
+                const action = btn.dataset.aiAction;
+                const isReusable = ['detect-objects', 'smart-inpaint'].includes(action);
+                handleAiAction(action);
+                if (!isReusable) {
+                    btn.textContent = '✅ Applied';
+                    btn.disabled = true;
+                    btn.classList.add('ai-applied');
+                } else {
+                    btn.classList.remove('ai-applied');
+                    btn.disabled = false;
+                    if (btn.dataset.origText) btn.textContent = btn.dataset.origText;
+                }
+            });
+        });
+    }
+
+    function setupAiDropdowns() {
+        const dropdowns = document.querySelectorAll('.ai-dropdown[data-ai-category]');
+        dropdowns.forEach(dropdown => {
+            const category = dropdown.dataset.aiCategory;
+            const toggle = dropdown.querySelector('.ai-dropdown-toggle');
+            const body = dropdown.querySelector('.ai-dropdown-body');
+            if (!toggle || !body) return;
+            toggle.addEventListener('click', () => {
+                const isOpen = dropdown.classList.contains('open');
+                document.querySelectorAll('.ai-dropdown.open').forEach(d => {
+                    if (d !== dropdown) d.classList.remove('open');
+                });
+                if (isOpen) {
+                    dropdown.classList.remove('open');
+                    return;
+                }
+                dropdown.classList.add('open');
+                if (body.dataset.loaded === 'true') return;
+                body.innerHTML = `
+                    <div class="ai-fake-loading">
+                        <span class="ai-loader-dot"></span>
+                        <span>Analysing photo and building suggestions…</span>
+                    </div>`;
+                setTimeout(() => {
+                    const content = AI_PANEL_CONTENT[category];
+                    body.innerHTML = content ? content.html : '<div class="ai-suggestion-card"><div class="ai-suggestion-desc">No suggestions available yet.</div></div>';
+                    body.dataset.loaded = 'true';
+                    bindAiSuggestionButtons(body);
+                }, 1400 + Math.floor(Math.random() * 900));
+            });
+        });
+    }
+
+    setupAiDropdowns();
 
     // =========================================================
     // AI PROMPT INPUT (pane-ai free-text field)
