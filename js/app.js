@@ -595,9 +595,61 @@ document.addEventListener('DOMContentLoaded', () => {
             if (editor.imageLoaded && !annotationLayer.active) annotationLayer.activate();
         }
 
-        // AI suggestions now live inside the AI Tools pane dropdowns.
-        // The right panel is reserved for AI reasoning only.
-        if (tool === 'ai' && usedAiActions.has('overall')) {
+        const aiContent = AI_PANEL_CONTENT[tool];
+        if (aiContent && tool !== 'ai') {
+            aiPanelTitle.textContent = aiContent.title;
+            aiPanelBody.innerHTML = aiContent.html;
+            aiPanelBody.querySelectorAll('.ai-suggestion-apply[data-ai-action]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.dataset.aiAction;
+                    const isReusable = ['detect-objects', 'smart-inpaint'].includes(action);
+
+                    handleAiAction(action);
+
+                    if (!isReusable) {
+                        // Mark applied and optionally collapse card
+                        btn.textContent = '✅ Applied';
+                        btn.disabled = true;
+                        btn.classList.add('ai-applied');
+
+                        const card = btn.closest('.ai-suggestion-card');
+                        if (card) {
+                            setTimeout(() => {
+                                card.style.transition = 'opacity 0.4s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease';
+                                card.style.opacity    = '0';
+                                card.style.maxHeight  = card.offsetHeight + 'px';
+                                requestAnimationFrame(() => requestAnimationFrame(() => {
+                                    card.style.maxHeight = '0';
+                                    card.style.overflow  = 'hidden';
+                                    card.style.marginBottom = '0';
+                                    card.style.paddingTop = '0';
+                                    card.style.paddingBottom = '0';
+                                }));
+                                setTimeout(() => {
+                                    card.remove();
+                                    const remaining = aiPanelBody.querySelectorAll('.ai-suggestion-card');
+                                    if (remaining.length === 0) {
+                                        aiPanelBody.innerHTML = `
+                                            <div class="ai-empty-state">
+                                                <div class="ai-empty-icon">✦</div>
+                                                <p class="ai-empty-title">All suggestions applied!</p>
+                                                <p class="ai-empty-desc">You've used all AI suggestions for this section.</p>
+                                            </div>`;
+                                    }
+                                }, 450);
+                            }, 1200);
+                        }
+                    } else {
+                        // Keep reusable objects suggestions available
+                        btn.classList.remove('ai-applied');
+                        btn.disabled = false;
+                        if (btn.dataset.origText) btn.textContent = btn.dataset.origText;
+                    }
+                });
+            });
+            aiPanel.classList.add('open');
+        } else if (tool === 'ai' && usedAiActions.has('overall')) {
+            // AI Edit Everything was applied — reopen reasoning panel
             aiPanelTitle.textContent = '💡 AI Reasoning';
             aiPanelBody.innerHTML = AI_REASONING_HTML;
             aiPanel.classList.add('open');
@@ -1639,17 +1691,16 @@ document.addEventListener('DOMContentLoaded', () => {
             'crop-thirds':'btn-ai-crop','crop-square':'btn-ai-crop','auto-straighten':'btn-ai-crop',
             'auto-heal':'btn-ai-retouch-btn','portrait-smooth':'btn-ai-retouch-btn',
         };
-        // Category controls are dropdown toggles now, so keep them clickable after applying suggestions.
         const catId = catMap[action];
         if (catId && !isReusable) {
             const b = document.getElementById(catId);
-            if (b) b.classList.add('ai-applied');
+            if (b) { b.classList.add('ai-applied'); b.disabled = true; }
         }
     }
 
     function clearUsedAiActions() {
         usedAiActions.clear();
-        document.querySelectorAll('#btn-ai-overall.ai-applied').forEach(b => { b.classList.remove('ai-applied'); b.disabled = false; });
+        document.querySelectorAll('.ai-cat-btn.ai-applied, #btn-ai-overall.ai-applied').forEach(b => { b.classList.remove('ai-applied'); b.disabled = false; });
         if (aiPanelBody) {
             aiPanelBody.querySelectorAll('.ai-suggestion-apply.ai-applied').forEach(b => {
                 b.classList.remove('ai-applied'); b.disabled = false;
@@ -1676,74 +1727,94 @@ document.addEventListener('DOMContentLoaded', () => {
         aiPanel.classList.add('open');
     }
 
-    if (btnAiOverall) btnAiOverall.addEventListener('click', aiOverallEnhance);
+    if (btnAiOverall)    btnAiOverall.addEventListener('click', aiOverallEnhance);
+    if (btnAiAdjustCat)  btnAiAdjustCat.addEventListener('click',  () => handleAiAction('auto-enhance'));
+    if (btnAiFilterCat)  btnAiFilterCat.addEventListener('click',  () => triggerAiFilter('Cool Fade'));
+    if (btnAiCropCat)    btnAiCropCat.addEventListener('click',    () => handleAiAction('crop-thirds'));
+    if (btnAiRetouchCat) btnAiRetouchCat.addEventListener('click', () => handleAiAction('auto-heal'));
 
-    function openEmptyAiSidePanel() {
-        // Reserved right-side panel space for future AI explanation/details.
-        // Keep it intentionally empty for now.
-        if (!aiPanel || !aiPanelTitle || !aiPanelBody) return;
-        aiPanelTitle.textContent = '';
-        aiPanelBody.innerHTML = '';
-        aiPanel.classList.add('open');
-    }
+    // =========================================================
+    // AI PROMPT INPUT (pane-ai free-text field)
+    // =========================================================
+    const aiPromptInput   = document.getElementById('ai-prompt-input');
+    const btnAiPromptSend = document.getElementById('btn-ai-prompt-send');
+    const aiPromptHint    = document.getElementById('ai-prompt-hint');
 
-    function bindAiSuggestionButtons(root) {
-        if (!root) return;
-        root.querySelectorAll('.ai-suggestion-apply[data-ai-action]').forEach(btn => {
-            if (btn.dataset.bound === 'true') return;
-            btn.dataset.bound = 'true';
-            btn.addEventListener('click', () => {
-                const action = btn.dataset.aiAction;
-                const isReusable = ['detect-objects', 'smart-inpaint'].includes(action);
-                openEmptyAiSidePanel();
-                handleAiAction(action);
-                if (!isReusable) {
-                    btn.textContent = '✅ Applied';
-                    btn.disabled = true;
-                    btn.classList.add('ai-applied');
+    const AI_PROMPT_RULES = [
+        { keywords: ['warm', 'warmer', 'orange', 'sunset'],             action: 'warm' },
+        { keywords: ['cool', 'cold', 'blue', 'winter'],                 action: 'cool' },
+        { keywords: ['bright', 'lighten', 'brighter'],                  action: 'boost-brightness' },
+        { keywords: ['enhance', 'improve', 'auto', 'fix'],              action: 'auto-enhance' },
+        { keywords: ['vivid', 'saturat', 'colourful', 'colorful'],      action: 'vivid' },
+        { keywords: ['grayscale', 'black and white', 'b&w', 'bw', 'monochrome'], action: 'suggest-grayscale' },
+        { keywords: ['sepia', 'vintage', 'retro'],                      action: 'suggest-sepia' },
+        { keywords: ['heal', 'blemish', 'spot'],                        action: 'auto-heal' },
+        { keywords: ['smooth', 'skin'],                                 action: 'portrait-smooth' },
+        { keywords: ['crop', 'frame', 'thirds', 'rule of thirds'],      action: 'crop-thirds' },
+        { keywords: ['square'],                                         action: 'crop-square' },
+        { keywords: ['straighten', 'rotate', 'tilt'],                   action: 'auto-straighten' },
+        { keywords: ['background', 'remove bg', 'cut out'],             action: 'remove-bg-prompt' },
+        { keywords: ['fade', 'matte', 'soft'],                          action: 'ai-filter' },
+        { keywords: ['sharpen', 'sharp', 'crisp'],                      action: 'suggest-sharpen-prompt' },
+        { keywords: ['contrast'],                                       action: 'boost-brightness' },
+        { keywords: ['caption', 'text', 'title'],                       action: 'suggest-caption' },
+    ];
+
+    if (btnAiPromptSend && aiPromptInput) {
+        aiPromptInput.addEventListener('input', () => {
+            btnAiPromptSend.disabled = aiPromptInput.value.trim().length === 0;
+        });
+
+        function applyAiPrompt() {
+            const query = aiPromptInput.value.trim().toLowerCase();
+            if (!query) return;
+            if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
+
+            let matched = null;
+            for (const rule of AI_PROMPT_RULES) {
+                if (rule.keywords.some(kw => query.includes(kw))) { matched = rule; break; }
+            }
+
+            if (matched) {
+                if (matched.action === 'warm') {
+                    const result = applyWarm(editor.getImageData());
+                    editor.putImageData(result); editor.history.push(result);
+                    editor.baseImageData = editor.getImageData(); editor._notifyChange();
+                    showAiFeedback('🟠 AI applied: Warm', null);
+                } else if (matched.action === 'cool') {
+                    const result = applyCool(editor.getImageData());
+                    editor.putImageData(result); editor.history.push(result);
+                    editor.baseImageData = editor.getImageData(); editor._notifyChange();
+                    showAiFeedback('🔵 AI applied: Cool', null);
+                } else if (matched.action === 'remove-bg-prompt') {
+                    applyBackgroundRemoval();
+                } else if (matched.action === 'suggest-sharpen-prompt') {
+                    const result = applySharpenFilter(editor.getImageData());
+                    editor.putImageData(result); editor.history.push(result);
+                    editor.baseImageData = editor.getImageData(); editor._notifyChange();
+                    showAiFeedback('🔪 AI applied: Sharpen', null);
                 } else {
-                    btn.classList.remove('ai-applied');
-                    btn.disabled = false;
-                    if (btn.dataset.origText) btn.textContent = btn.dataset.origText;
+                    handleAiAction(matched.action);
                 }
-            });
+                if (aiPromptHint) {
+                    aiPromptHint.style.color = 'var(--text-secondary)';
+                    aiPromptHint.textContent = `✅ Applied: "${aiPromptInput.value.trim()}"`;
+                }
+                aiPromptInput.value = '';
+                btnAiPromptSend.disabled = true;
+            } else {
+                if (aiPromptHint) {
+                    aiPromptHint.style.color = '#f85149';
+                    aiPromptHint.textContent = `⚠️ Couldn't understand that. Try: "make it warmer", "boost brightness", "grayscale"…`;
+                }
+            }
+        }
+
+        btnAiPromptSend.addEventListener('click', applyAiPrompt);
+        aiPromptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); applyAiPrompt(); }
         });
     }
-
-    function setupAiDropdowns() {
-        const dropdowns = document.querySelectorAll('.ai-dropdown[data-ai-category]');
-        dropdowns.forEach(dropdown => {
-            const category = dropdown.dataset.aiCategory;
-            const toggle = dropdown.querySelector('.ai-dropdown-toggle');
-            const body = dropdown.querySelector('.ai-dropdown-body');
-            if (!toggle || !body) return;
-            toggle.addEventListener('click', () => {
-                const isOpen = dropdown.classList.contains('open');
-                document.querySelectorAll('.ai-dropdown.open').forEach(d => {
-                    if (d !== dropdown) d.classList.remove('open');
-                });
-                if (isOpen) {
-                    dropdown.classList.remove('open');
-                    return;
-                }
-                dropdown.classList.add('open');
-                if (body.dataset.loaded === 'true') return;
-                body.innerHTML = `
-                    <div class="ai-fake-loading">
-                        <span class="ai-loader-dot"></span>
-                        <span>Analysing photo and building suggestions…</span>
-                    </div>`;
-                setTimeout(() => {
-                    const content = AI_PANEL_CONTENT[category];
-                    body.innerHTML = content ? content.html : '<div class="ai-suggestion-card"><div class="ai-suggestion-desc">No suggestions available yet.</div></div>';
-                    body.dataset.loaded = 'true';
-                    bindAiSuggestionButtons(body);
-                }, 1400 + Math.floor(Math.random() * 900));
-            });
-        });
-    }
-
-    setupAiDropdowns();
 
     function handleAiAction(action) {
         if (!editor.imageLoaded) { showSnackbar('🖼️ Open an image first.'); return; }
