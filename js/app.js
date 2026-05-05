@@ -1737,7 +1737,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         aiFeedbackToast.classList.add('visible');
         clearTimeout(aiFbAutoDismiss);
-        aiFbAutoDismiss = setTimeout(() => dismissAiFeedback(false), 10000);
     }
 
     function shuffleArray(arr) {
@@ -1767,7 +1766,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 aiFeedbackToast.querySelector('.ai-feedback-sub').textContent = 'Your feedback will be used to improve models and workflows for all users.';
                 aiFeedbackReasonSection.style.display = 'none';
                 aiFeedbackThanks.style.display = 'block';
-                setTimeout(() => dismissAiFeedback(true), 1600);
             });
         });
     }
@@ -1776,10 +1774,6 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(aiFbAutoDismiss);
         if (withThanks) {
             aiFeedbackThanks.style.display = 'block';
-            setTimeout(() => {
-                aiFeedbackToast.classList.remove('visible');
-                setTimeout(() => { aiFeedbackThanks.style.display = 'none'; }, 400);
-            }, 1400);
         } else {
             aiFeedbackToast.classList.remove('visible');
         }

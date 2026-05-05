@@ -7,19 +7,65 @@
     <link rel="stylesheet" href="css/styles.css">
 
     <style>
-        .ai-accordion-list{display:flex;flex-direction:column;gap:10px;}
-        .ai-dropdown{border:1px solid rgba(132,156,255,.25);border-radius:10px;background:rgba(255,255,255,.035);overflow:hidden;}
-        .ai-dropdown-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer;text-align:left;}
-        .ai-dropdown-toggle:hover{background:rgba(132,156,255,.12);}
-        .ai-dropdown-left{display:flex;align-items:center;gap:10px;}
-        .ai-dropdown-chevron{transition:transform .2s ease;}
-        .ai-dropdown.open .ai-dropdown-chevron{transform:rotate(180deg);}
-        .ai-dropdown-body{display:none;padding:0 12px 12px;}
-        .ai-dropdown.open .ai-dropdown-body{display:block;}
-        .ai-fake-loading{display:flex;align-items:center;gap:8px;padding:12px;color:#9fb0d8;font-size:12px;}
-        .ai-loader-dot{width:8px;height:8px;border-radius:50%;background:#8aa2ff;animation:aiPulse .8s infinite alternate;}
-        @keyframes aiPulse{from{opacity:.35;transform:scale(.8)}to{opacity:1;transform:scale(1.2)}}
-        .ai-dropdown-body .ai-suggestion-card{margin-top:10px;}
+        /* Make Undo / Redo more noticeable in the top toolbar */
+        .toolbar .btn-history {
+            min-width: 82px;
+            height: 34px;
+            padding: 0 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            border: 1px solid rgba(125, 166, 255, 0.95);
+            background: linear-gradient(180deg, rgba(64, 83, 132, 0.92), rgba(36, 45, 78, 0.96));
+            box-shadow: 0 0 0 1px rgba(125, 166, 255, 0.18), 0 8px 22px rgba(0, 0, 0, 0.24);
+            color: #dce7ff;
+            font-weight: 700;
+        }
+        .toolbar .btn-history:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 0 0 1px rgba(125, 166, 255, 0.35), 0 10px 26px rgba(0, 0, 0, 0.32);
+        }
+        .toolbar .btn-history:disabled {
+            opacity: 0.42;
+            filter: grayscale(0.35);
+        }
+        .history-icon { font-size: 15px; line-height: 1; }
+        .history-label { font-size: 12px; letter-spacing: 0.01em; }
+
+        /* Center AI feedback and keep it modal until the close button is clicked */
+        .ai-feedback-toast {
+            position: fixed !important;
+            left: 50% !important;
+            right: auto !important;
+            bottom: 0% !important;
+            transform: translate(-50%, -50%) scale(0.96) !important;
+            width: min(520px, calc(100vw - 36px)) !important;
+            max-width: 520px !important;
+            z-index: 3200 !important;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+        }
+        .ai-feedback-toast.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1) !important;
+        }
+        .ai-feedback-toast-inner {
+            align-items: flex-start;
+            gap: 14px;
+        }
+        .ai-feedback-actions {
+            flex-wrap: nowrap;
+        }
+        .ai-feedback-reason-section {
+            margin-top: 12px;
+        }
+        .ai-feedback-reason-buttons {
+            max-height: 170px;
+            overflow: auto;
+        }
     </style>
 </head>
 <body>
@@ -60,8 +106,8 @@
             </div>
             <div class="separator"></div>
             <div class="toolbar-group">
-                <button class="btn btn-icon" id="btn-undo" title="Undo (Ctrl+Z)">↩️</button>
-                <button class="btn btn-icon" id="btn-redo" title="Redo (Ctrl+Shift+Z)">↪️</button>
+                <button class="btn btn-icon btn-history" id="btn-undo" title="Undo (Ctrl+Z)"><span class="history-icon">↩️</span><span class="history-label">Undo</span></button>
+                <button class="btn btn-icon btn-history" id="btn-redo" title="Redo (Ctrl+Shift+Z)"><span class="history-icon">↪️</span><span class="history-label">Redo</span></button>
             </div>
             <div class="toolbar-spacer"></div>
             <div class="toolbar-group">
