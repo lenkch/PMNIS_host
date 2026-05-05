@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PhotoEdit — Photo Editor</title>
     <link rel="stylesheet" href="css/styles.css">
+
+    <style>
+        .ai-accordion-list{display:flex;flex-direction:column;gap:10px;}
+        .ai-dropdown{border:1px solid rgba(132,156,255,.25);border-radius:10px;background:rgba(255,255,255,.035);overflow:hidden;}
+        .ai-dropdown-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer;text-align:left;}
+        .ai-dropdown-toggle:hover{background:rgba(132,156,255,.12);}
+        .ai-dropdown-left{display:flex;align-items:center;gap:10px;}
+        .ai-dropdown-chevron{transition:transform .2s ease;}
+        .ai-dropdown.open .ai-dropdown-chevron{transform:rotate(180deg);}
+        .ai-dropdown-body{display:none;padding:0 12px 12px;}
+        .ai-dropdown.open .ai-dropdown-body{display:block;}
+        .ai-fake-loading{display:flex;align-items:center;gap:8px;padding:12px;color:#9fb0d8;font-size:12px;}
+        .ai-loader-dot{width:8px;height:8px;border-radius:50%;background:#8aa2ff;animation:aiPulse .8s infinite alternate;}
+        @keyframes aiPulse{from{opacity:.35;transform:scale(.8)}to{opacity:1;transform:scale(1.2)}}
+        .ai-dropdown-body .ai-suggestion-card{margin-top:10px;}
+    </style>
 </head>
 <body>
     <!-- ===== Welcome / Role Screen ===== -->
@@ -323,19 +339,35 @@
                     <div class="pane-section">
                         <div class="pane-tooltip"><div class="pane-tooltip-title">🤖 AI by Category</div>Target a specific area: AI Adjust optimises light and colour, AI Filter picks the best style filter, AI Crop suggests the ideal framing, AI Retouch cleans up imperfections.</div>
                         <p class="pane-label">AI by Category</p>
-                        <div class="ai-btn-list">
-                            <button class="ai-cat-btn" id="btn-ai-adjust">
-                                <span>🎨</span><span class="ai-cat-label">AI Adjust</span>
-                            </button>
-                            <button class="ai-cat-btn" id="btn-ai-filter">
-                                <span>✨</span><span class="ai-cat-label">AI Filter</span>
-                            </button>
-                            <button class="ai-cat-btn" id="btn-ai-crop">
-                                <span>✂️</span><span class="ai-cat-label">AI Crop</span>
-                            </button>
-                            <button class="ai-cat-btn" id="btn-ai-retouch-btn">
-                                <span>🪄</span><span class="ai-cat-label">AI Retouch</span>
-                            </button>
+                        <div class="ai-accordion-list" id="ai-accordion-list">
+                            <div class="ai-dropdown" data-ai-category="adjust">
+                                <button class="ai-dropdown-toggle" type="button" id="btn-ai-adjust" data-ai-category="adjust">
+                                    <span class="ai-dropdown-left"><span>🎨</span><span>AI Adjust</span></span>
+                                    <span class="ai-dropdown-chevron">⌄</span>
+                                </button>
+                                <div class="ai-dropdown-body" id="ai-category-adjust-result"></div>
+                            </div>
+                            <div class="ai-dropdown" data-ai-category="filters">
+                                <button class="ai-dropdown-toggle" type="button" id="btn-ai-filter" data-ai-category="filters">
+                                    <span class="ai-dropdown-left"><span>✨</span><span>AI Filter</span></span>
+                                    <span class="ai-dropdown-chevron">⌄</span>
+                                </button>
+                                <div class="ai-dropdown-body" id="ai-category-filters-result"></div>
+                            </div>
+                            <div class="ai-dropdown" data-ai-category="crop">
+                                <button class="ai-dropdown-toggle" type="button" id="btn-ai-crop" data-ai-category="crop">
+                                    <span class="ai-dropdown-left"><span>✂️</span><span>AI Crop</span></span>
+                                    <span class="ai-dropdown-chevron">⌄</span>
+                                </button>
+                                <div class="ai-dropdown-body" id="ai-category-crop-result"></div>
+                            </div>
+                            <div class="ai-dropdown" data-ai-category="retouch">
+                                <button class="ai-dropdown-toggle" type="button" id="btn-ai-retouch-btn" data-ai-category="retouch">
+                                    <span class="ai-dropdown-left"><span>🪄</span><span>AI Retouch</span></span>
+                                    <span class="ai-dropdown-chevron">⌄</span>
+                                </button>
+                                <div class="ai-dropdown-body" id="ai-category-retouch-result"></div>
+                            </div>
                         </div>
                         <div class="filter-ai-result" id="filter-ai-result" style="display:none;">
                             <div class="filter-ai-applied" id="filter-ai-applied-label"></div>
